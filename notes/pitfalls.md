@@ -46,3 +46,9 @@ embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找�
 问题:`BM25Okapi.get_scores()` 对明显命中的词返回全 0,检索结果为空
 尝试:最小复现确认是库与 NumPy 2.x 的兼容 bug,非调用方式问题
 结论:自实现 Okapi BM25(app/hybrid.py,30 行倒排表),requirements 注明弃用;第三方"标准库"也要冒烟验证再信
+
+## HF_HOME 不生效,模型下到 C 盘 2.1GB(2026-09-10,Phase 4)
+
+问题:直接 import sentence_transformers/huggingface_hub 的脚本(模型验证、download_models.py)没先加载 pipeline.config,HF_HOME 落空,模型下到 C 盘默认 ~/.cache
+尝试:事后 robocopy /MOVE 搬到 D 盘(注意 Git Bash 会把 robocopy 的 /E /MOVE 吃成路径,须经 PowerShell 调用)
+结论:任何动 HF 的脚本,第一行必须 import pipeline.config(或显式设 HF_HOME);download_models.py 已修
