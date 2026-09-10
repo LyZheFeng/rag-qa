@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 0 进行中
+## 状态：Phase 0 完成 ✅（2026-09-10）→ 下一阶段 Phase 1
 
 ## 已定决策
 
@@ -20,9 +20,9 @@
 - [x] 仓库初始化 + 远程推送（commit 31e243a）
 - [x] WORKFLOW.md / PROGRESS.md 落盘
 - [x] requirements.txt / .env.example / .env / 目录骨架
-- [ ] 后台：venv + 依赖安装 + bge-m3 下载（`scripts/setup_env.sh`，日志 `data/cache/setup.log`；依赖已全部下载完进入安装阶段，剩 bge-m3 下载）
+- [x] 后台：venv + 依赖安装完成（torch 2.14.0+cpu，日志 `data/cache/setup.log`）
 - [x] 语料：`data/raw/fastapi-zh/` 124 篇 md（943KB）+ `data/raw/fastapi-docs-src/` 461 个代码文件（752KB）
-- [ ] 验证：bge-m3 加载成功
+- [x] 验证：bge-m3 离线加载成功，1024 维，单条编码含加载 2.4s（缓存 `data/cache/hf/`，使用时设 `HF_HOME=D:\LLM_training\rag-qa\data\cache\hf`）
 
 ## 语料关键发现（Phase 1 loader 的输入约束）
 
