@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 2 完成 ✅（tag `v0.1-baseline`）→ 介入点 B 已通过（2026-09-10）→ Phase 3 进行中（评估体系）
+## 状态：Phase 3 完成 ✅ + Phase 4 v0.2 完成 ✅（tag `v0.2-hybrid`，2026-09-10）→ 明日 v0.3-rerank（代码已就绪）
 
 ## 已定决策
 
@@ -74,10 +74,26 @@
 - [x] 出题:240 题(事实 120/推理 72/无法回答 48),零失败零重复,分层抽样覆盖 116 文档;出题 temp 0.7/0.9(数据构造允许,评估跑批严格 0)
 - [x] 预筛:gold 一致性复核 + 无法回答题检索复核(红线 2),剔除 gold_mismatch 11 / corpus_answers 3 → 入选 200 题(100/60/40),覆盖 100 文档,单文档同类型 ≤3;记录留档 `data/eval/screening_report.jsonl`
 - [x] 审核文件导出:`data/eval/review_questions.md`(200 题,介入点 C 待用户确认)
-- [ ] 介入点 C:用户逐题审核(要删的标 `x`)
-- [ ] v0.1-baseline 全量评估 → `eval/results.md`
+- [x] 介入点 C:用户确认通过(2026-09-10,200 题无删改)
+- [x] v0.1-baseline 全量评估 → results.md 基线行(正确性 3.92 / 误拒 18.1% / 拒答正确 97.5%)
+- [x] v0.2-hybrid 全量评估 → results.md 追加行 + tag(正确性 4.41 / 误拒 7.5% / 拒答正确 100%)
+
+## Phase 4 清单(优化循环)
+
+- [x] v0.2-hybrid:内置 BM25(中文 bigram+ASCII 词)+ RRF 融合,RETRIEVER 开关;Depends 弱项修复(top-3 全是代码示例 chunk)
+- [x] v0.3-rerank 代码预备:CrossEncoder 精排器(bge-reranker-v2-m3 已下载验证,CPU 加载 4min/打分 0.14s),RETRIEVER=rerank 启用,**待跑**:检索层验证 → 快评 → 全量
+- [ ] v0.4-rewrite 多查询扩展
+- [ ] v0.5-chunking 对比(固定/标题语义/父子)
+- [ ] 30 条人机一致性抽样(需用户参与,记录已够)
 
 ### Phase 3 关键发现
+
+- **v0.2-hybrid 检索层验证(全量 160 可答题,无 LLM)**:chunk recall@5 64.4%→83.1%(+18.8pp)、MRR 52.3%→65.6%、doc 口径 87.5%→94.4%;recall@10 chunk 达 93.1% → v0.3-rerank(粗20精5)的候选池足够
+- rank-bm25 0.2.2 + NumPy 2.x 静默全 0 分 → 自实现 Okapi BM25(见 pitfalls)
+
+- **50 题冒烟(v0.1-baseline-smoke,非正式数字)**:事实题 RAG 4.44 vs 无检索 3.76(RAG 增益明确);推理题 RAG 3.21 vs 无检索 4.36(检索反而拖累);faithfulness 0.985;无法答题 10/10 正确拒答;误拒 15%(6/40)
+- **doc 口径 recall 97.5% vs chunk 口径 67.5%**:几乎总能找到对的文档,但 top-5 里没有承载答案的那个 chunk——误拒的低分案例全部是 gold 不在 top5,模型看到"邻而不准"的 chunk 后诚实拒答。→ 系统不答是"检索没送到"而非"模型不会",v0.2-hybrid/v0.3-rerank/父子 chunk 的直接依据
+- 推理题是"为什么"类,chunk 被拒后模型保守按资料拒答,而裸模型凭参数知识能答——说明推理题对检索精度更敏感
 
 - 出题时"为什么"类推理题易超出 chunk 支撑范围(资料只讲是什么不讲原理),gold 一致性复核是必要闸门(11/240 命中)
 - 无法回答题生成会撞上语料实有内容(PyJWT、SQLAlchemy session),检索复核 3/48 命中,证实红线 2 不能省
@@ -85,9 +101,15 @@
 
 ## 下一步
 
-**介入点 C(待用户)**:审核 `data/eval/review_questions.md`,要删的题行首编号改 `x`,可直接改题目文本。回收后生成正式 questions.jsonl。
+**明日 v0.3-rerank**(代码已就绪,改 .env `RETRIEVER=rerank` 即跑):检索层验证(约 10min)→ 50 题快评(13min)→ 全量(40min)→ results.md + tag。
+之后 v0.4-rewrite → v0.5-chunking → Phase 5 拒答校准(v0.2 误拒 7.5% 已达 ≤10% 目标,重点保持)→ Phase 6 部署(介入点 D)。
+另有 30 条人机一致性抽样待用户抽空参与。
 
-随后:v0.1-baseline 全量评估(200 题,约 40 分钟)→ 数字进 `eval/results.md` → git tag。Phase 4 优化循环与评估并行启动(v0.2-hybrid:BM25 中文 bigram + RRF,重点回归 Depends 代码示例类问题)。
+### 今日评估链路备忘
+
+- 全量 200 题 ≈ 40 分钟(每题 5 次 LLM 调用);快评 50 ≈ 12 分钟
+- 无检索对照列同题复跑完全一致(3.86),judge 复现性良好
+- eval/runs/ 已留档 3 个 run(v0.1-smoke/v0.1-full/v0.2-full)
 
 ## 环境备忘
 
