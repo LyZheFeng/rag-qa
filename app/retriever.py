@@ -54,5 +54,13 @@ class VectorRetriever:
 
 @lru_cache(maxsize=1)
 def get_retriever() -> VectorRetriever:
-    """进程内单例：嵌入模型加载 ~2.4s，只付一次。"""
-    return VectorRetriever.from_settings()
+    """进程内单例:嵌入模型加载 ~2.4s,只付一次。RETRIEVER=hybrid 时返回融合检索。"""
+    from pipeline.config import get_settings
+
+    s = get_settings()
+    base = VectorRetriever.from_settings()
+    if s.retriever != "hybrid":
+        return base
+    from .hybrid import BM25Index, HybridRetriever
+
+    return HybridRetriever(base, BM25Index.from_chunks_file(s.chunks_path), s.hybrid_candidates, s.rrf_k)

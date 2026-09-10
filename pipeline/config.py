@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = ""
     collection: str = "fastapi_zh_v1"
+    retriever: str = "vector"  # "vector" | "hybrid"(BM25+RRF, v0.2)
+    hybrid_candidates: int = 20  # hybrid 每路召回深度
+    rrf_k: int = 60  # RRF 融合常数
 
     model_config = {"env_file": REPO_ROOT / ".env", "extra": "ignore"}
 
@@ -30,6 +33,10 @@ class Settings(BaseSettings):
     @property
     def chunks_dir(self) -> Path:
         return REPO_ROOT / "data" / "chunks"
+
+    @property
+    def chunks_path(self) -> Path:
+        return self.chunks_dir / "chunks.jsonl"
 
     @property
     def chroma_dir(self) -> Path:

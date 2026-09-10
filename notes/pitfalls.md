@@ -40,3 +40,9 @@ embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找�
 引用校验的 `isinstance(c, bool)` 排除写在 AnswerSpec 构造之后，模型输出 `citations: [true]` 被强转成 1 混过校验（单测抓到）。
 **结论：对 LLM 输出的清洗必须先在原始 dict 上做，再交给 pydantic——强转会消灭类型证据。**
 
+
+## rank-bm25 0.2.2 + NumPy 2.x 静默返回全 0 分(2026-09-10,Phase 4)
+
+问题:`BM25Okapi.get_scores()` 对明显命中的词返回全 0,检索结果为空
+尝试:最小复现确认是库与 NumPy 2.x 的兼容 bug,非调用方式问题
+结论:自实现 Okapi BM25(app/hybrid.py,30 行倒排表),requirements 注明弃用;第三方"标准库"也要冒烟验证再信
