@@ -12,6 +12,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class Settings(BaseSettings):
     embed_model: str = "BAAI/bge-m3"
     hf_home: str = ""  # 为空则不覆盖环境变量
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = ""
+    collection: str = "fastapi_zh_v1"
 
     model_config = {"env_file": REPO_ROOT / ".env", "extra": "ignore"}
 

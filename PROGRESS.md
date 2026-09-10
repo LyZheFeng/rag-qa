@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 1 完成 ✅ + 介入点 A 已认可（2026-09-10）→ 下一阶段 Phase 2（基线链路）
+## 状态：Phase 2 完成 ✅（2026-09-10，tag `v0.1-baseline`）→ 待介入点 B 演示 → 下一阶段 Phase 3（评估体系）
 
 ## 已定决策
 
@@ -47,14 +47,30 @@
 - `stream-data.md` 有 base64 图片字面量（单行 4000+ 字符），已按 1000+ 字符行截断
 - 排除非正式文档：`_llm-test.md`（翻译 QA 测试页）、`translation-banner.md`（局部片段），124 → 122 篇
 
+## Phase 2 清单（基线链路）
+
+- [x] `app/` 包：schemas（pydantic 契约）/ retriever（bge-m3 + Chroma top-k）/ generator / service（编排+延迟）/ api（FastAPI）/ ui（Streamlit chat）
+- [x] 生成契约：`{answer, citations, refused}` 严格 JSON；剥围栏/`</think>` 后取首 `{` 末 `}`；解析失败重试 1 次（带纠正提示），再失败降级纯文本；`parse_mode` 记录 json/retry/fallback
+- [x] 引用与拒答：citations 在 pydantic **之前**于原始 dict 上清洗（去越界/去重/排序，refused 强制清空）；服务层富化为完整 chunk 信息（cited 字段）
+- [x] FastAPI：`POST /ask`（k 可调 1~10）、`GET /health`，lifespan 预热嵌入模型（首问检索不付加载耗时），LLM 断连统一 502
+- [x] Streamlit：chat 界面 + 引用卡片展开 chunk 原文 + 相似度/延迟/parse_mode 标注，`st.cache_resource` 单例
+- [x] 单测 16 个新增（全库 31 过，全部无网络；AppTest 验证 UI 可跑）
+- [x] 冒烟 `scripts/smoke_phase2.py`：5 问端到端，检索均值 90ms / 生成均值 1.8s / 端到端均值 1.9s（最大 3.1s）；4 题正常引用作答 + 1 题正确拒答（gRPC，语料确无）
+- [x] FastAPI 实测：中文 POST 正常，`uvicorn app.api:app --port 8010` → health/ask 全通
+- [x] tag `v0.1-baseline`
+
+## Phase 2 关键发现（Phase 4 的输入）
+
+- **Depends 用法误拒**：问"Depends 怎么用"，top-5 全是概念/小结 chunk（0.71~0.76），真正的代码示例 chunk 未入围，模型如实拒答（无编造）。→ 纯向量对"要代码示例"类问题弱，v0.2-hybrid（BM25 代码词精确匹配）的直接动机
+- 拒答答案质量好：会说明"资料里只有概念没有用法"，不是干巴巴一句"不知道"
+- 生成延迟 0.9~2.9s/问（temperature=0），检索稳定在 50~200ms（预热后）
+- pydantic v2 `list[int]` 会把 JSON `true` 强转成 `1`：LLM JSON 必须先在原始 dict 上清洗再进模型（见 pitfalls）
+
 ## 下一步
 
-**Phase 2 基线链路**：向量 top-5 检索 → 编号上下文 → Qwen3.8-27B 生成（pydantic：answer/citations/refused，解析失败重试 1 次降级纯文本）→ FastAPI `POST /ask` → Streamlit 界面。验证：5 个手工问题端到端 + 延迟。完成后 tag `v0.1-baseline`，介入点 B 演示。
+**介入点 B**：演示 Streamlit（`streamlit run app/ui.py`）+ API（`uvicorn app.api:app --port 8000`），用户体验基线。
 
-Phase 2 可直接复用：
-- 检索：`pipeline/embed.py` 的 `encode_queries()` + Chroma collection `fastapi_zh_v1`（`data/chroma/`）
-- 冒烟已验证检索质量：3 问全部命中正确章节（cos 距离 0.18~0.34）
-- 生成走 `.env` 的 LLM_BASE_URL/LLM_MODEL（`enable_thinking:false`），注意 Git Bash 中文坑：请求一律 Python + UTF-8
+**Phase 3 评估体系**：分层抽 chunk → Qwen 生成 200 题（事实 100/推理 60/无法回答 40，带 gold chunk_id）→ 预筛 → 导出审核文件（介入点 C）。评估脚本：recall@5（chunk/doc 双口径）、MRR、faithfulness、正确性 1~5 分、拒答率（分开统计）+ 无检索对照列。与 Phase 4 并行。
 
 ## 环境备忘
 

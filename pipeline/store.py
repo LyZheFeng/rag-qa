@@ -32,6 +32,7 @@ def upsert_chunks(collection, chunks: list[Chunk], embeddings: list[list[float]]
         documents=[c.text for c in chunks],
         metadatas=[
             {
+                "chunk_id": c.chunk_id,
                 "doc_name": c.doc_name,
                 "seq": c.seq,
                 "section_path": c.section_path,

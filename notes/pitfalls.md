@@ -32,5 +32,11 @@ stream-data.md 代码块内嵌 base64 PNG（单行 4269 字符），行切分无
 
 ## 2026-09-10 · SentenceTransformer 离线加载要求 HF_HOME 在 import 前生效
 
-embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找不到 D 盘缓存而报 LocalEntryNotFoundError（build_index.py 能跑、单写脚本不能）。
+embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找不到 D 盘缓存而报 LocalEntryNotFoundException（build_index.py 能跑、单写脚本不能）。
 **结论：`pipeline/__init__.py` 导入即应用 .env 的 HF_HOME，保证任何入口先有缓存路径再 import transformers。**
+
+## 2026-09-10 · pydantic v2 list[int] 把 JSON true 强转成 1
+
+引用校验的 `isinstance(c, bool)` 排除写在 AnswerSpec 构造之后，模型输出 `citations: [true]` 被强转成 1 混过校验（单测抓到）。
+**结论：对 LLM 输出的清洗必须先在原始 dict 上做，再交给 pydantic——强转会消灭类型证据。**
+
