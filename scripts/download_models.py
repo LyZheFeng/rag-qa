@@ -19,7 +19,11 @@ def main():
     if not args:
         print(__doc__)
         sys.exit(1)
-    for key in args:
+    for arg in args:
+        key = arg.lstrip("-")
+        if key not in MODELS:
+            print(f"未知参数 {arg}，可选: {list(MODELS)}")
+            sys.exit(1)
         repo = MODELS[key]
         path = snapshot_download(repo)
         print(f"已就绪: {repo} -> {path}")
