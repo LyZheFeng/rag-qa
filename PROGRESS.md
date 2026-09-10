@@ -68,7 +68,9 @@
 
 ## 下一步
 
-**介入点 B**：演示 Streamlit（`streamlit run app/ui.py`）+ API（`uvicorn app.api:app --port 8000`），用户体验基线。
+**介入点 B**：用户体验基线，启动命令（仓库根）：
+- 界面：`.venv/Scripts/streamlit run app/ui.py`
+- API：`.venv/Scripts/python.exe -m uvicorn app.api:app --port 8000`（POST /ask 中文请求一律 Python + UTF-8）
 
 **Phase 3 评估体系**：分层抽 chunk → Qwen 生成 200 题（事实 100/推理 60/无法回答 40，带 gold chunk_id）→ 预筛 → 导出审核文件（介入点 C）。评估脚本：recall@5（chunk/doc 双口径）、MRR、faithfulness、正确性 1~5 分、拒答率（分开统计）+ 无检索对照列。与 Phase 4 并行。
 
