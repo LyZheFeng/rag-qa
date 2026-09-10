@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = ""
     collection: str = "fastapi_zh_v1"
-    retriever: str = "vector"  # "vector" | "hybrid"(BM25+RRF, v0.2)
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    retriever: str = "vector"  # "vector" | "hybrid"(BM25+RRF, v0.2) | "rerank"(v0.3)
     hybrid_candidates: int = 20  # hybrid 每路召回深度
     rrf_k: int = 60  # RRF 融合常数
 

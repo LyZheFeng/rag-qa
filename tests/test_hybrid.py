@@ -66,3 +66,41 @@ def test_hybrid_retriever_full_hits():
     # A:向量 rank2(1/62) + BM25 rank1(1/61) > B:仅向量 rank1(1/61)
     assert hits[0].chunk_id == "doc.a#0000"
     assert hits[0].text  # 融合命中都有完整正文
+
+
+def test_rerank_reorders_and_truncates():
+    from app.rerank import RerankRetriever
+    from app.schemas import Hit
+
+    def mk(i, text):
+        return Hit(index=i, chunk_id=f"c{i}", doc_name="d.md", section_path="s", text=text, score=0.5)
+
+    class FakeBase:
+        def retrieve(self, query, k=5):
+            return [mk(1, "甲"), mk(2, "乙"), mk(3, "丙")]
+
+    class FakeReranker:  # 丙 > 甲 > 乙
+        def predict(self, pairs):
+            order = {"丙": 0.9, "甲": 0.8, "乙": 0.1}
+            return [order[p[1]] for p in pairs]
+
+    rr = RerankRetriever(FakeBase(), reranker=FakeReranker(), candidates=3)
+    hits = rr.retrieve("q", k=2)
+    assert [h.chunk_id for h in hits] == ["c3", "c1"]  # 按精排分重排并截断
+    assert [h.index for h in hits] == [1, 2]
+    assert hits[0].score == 0.9
+
+
+def test_rerank_pool_le_k_passthrough():
+    from app.rerank import RerankRetriever
+
+    class FakeBase:
+        def retrieve(self, query, k=5):
+            return ["x"] * (k - 1)  # 少于 k,直接返回不精排
+
+    class Boom:
+        def predict(self, pairs):
+            raise AssertionError("不应调用精排")
+
+    rr = RerankRetriever(FakeBase(), reranker=Boom(), candidates=3)
+    assert rr.retrieve("q", k=3) == ["x", "x"]
