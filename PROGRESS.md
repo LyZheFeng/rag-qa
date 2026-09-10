@@ -61,16 +61,33 @@
 
 ## Phase 2 关键发现（Phase 4 的输入）
 
+- 介入点 B 复测(2026-09-10):"Depends 怎么用?"当日未复现误拒(答上且 2 条引用)——该弱项按"偶发"处理,v0.2-hybrid 落地后用测试集回归验证,不依赖单次手工复现
+
 - **Depends 用法误拒**：问"Depends 怎么用"，top-5 全是概念/小结 chunk（0.71~0.76），真正的代码示例 chunk 未入围，模型如实拒答（无编造）。→ 纯向量对"要代码示例"类问题弱，v0.2-hybrid（BM25 代码词精确匹配）的直接动机
 - 拒答答案质量好：会说明"资料里只有概念没有用法"，不是干巴巴一句"不知道"
 - 生成延迟 0.9~2.9s/问（temperature=0），检索稳定在 50~200ms（预热后）
 - pydantic v2 `list[int]` 会把 JSON `true` 强转成 `1`：LLM JSON 必须先在原始 dict 上清洗再进模型（见 pitfalls）
 
+## Phase 3 清单(评估体系,进行中)
+
+- [x] `eval/` 模块:question_gen / sampling / screen / judge / metrics / run_eval / export_review,单测 9 个新增(全库 40 过)
+- [x] 出题:240 题(事实 120/推理 72/无法回答 48),零失败零重复,分层抽样覆盖 116 文档;出题 temp 0.7/0.9(数据构造允许,评估跑批严格 0)
+- [x] 预筛:gold 一致性复核 + 无法回答题检索复核(红线 2),剔除 gold_mismatch 11 / corpus_answers 3 → 入选 200 题(100/60/40),覆盖 100 文档,单文档同类型 ≤3;记录留档 `data/eval/screening_report.jsonl`
+- [x] 审核文件导出:`data/eval/review_questions.md`(200 题,介入点 C 待用户确认)
+- [ ] 介入点 C:用户逐题审核(要删的标 `x`)
+- [ ] v0.1-baseline 全量评估 → `eval/results.md`
+
+### Phase 3 关键发现
+
+- 出题时"为什么"类推理题易超出 chunk 支撑范围(资料只讲是什么不讲原理),gold 一致性复核是必要闸门(11/240 命中)
+- 无法回答题生成会撞上语料实有内容(PyJWT、SQLAlchemy session),检索复核 3/48 命中,证实红线 2 不能省
+- 评估链路:每题 5 次 LLM 调用(RAG 生成 + 无检索对照 + 3 项 judge),全量 200 题 ≈ 35~40 分钟
+
 ## 下一步
 
-**Phase 3（进行中）**：分层抽 chunk → Qwen 生成 200 题（事实 100/推理 60/无法回答 40，带 gold chunk_id）→ 预筛 → 导出审核文件（介入点 C）。评估脚本：recall@5（chunk/doc 双口径）、MRR、faithfulness、正确性 1~5 分、拒答率（分开统计）+ 无检索对照列。与 Phase 4 并行。
+**介入点 C(待用户)**:审核 `data/eval/review_questions.md`,要删的题行首编号改 `x`,可直接改题目文本。回收后生成正式 questions.jsonl。
 
-介入点 B 记录（2026-09-10）：界面+API 演示通过；路径参数问答正常引用，延迟与冒烟一致（检索 45ms/生成 1.9s）；Depends 问法本轮未复现误拒（用户已知晓该弱项，v0.2-hybrid 验证时重点回归）。
+随后:v0.1-baseline 全量评估(200 题,约 40 分钟)→ 数字进 `eval/results.md` → git tag。Phase 4 优化循环与评估并行启动(v0.2-hybrid:BM25 中文 bigram + RRF,重点回归 Depends 代码示例类问题)。
 
 ## 环境备忘
 
