@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 1 完成 ✅（2026-09-10）→ **介入点 A：等用户认可 chunk 样例** → Phase 2
+## 状态：Phase 1 完成 ✅ + 介入点 A 已认可（2026-09-10）→ 下一阶段 Phase 2（基线链路）
 
 ## 已定决策
 
@@ -49,7 +49,12 @@
 
 ## 下一步
 
-**介入点 A**：用户审 `data/chunks/samples.md` + `stats.md` → 认可后进 Phase 2 基线链路（向量 top-5 → 生成 → /ask → Streamlit）。
+**Phase 2 基线链路**：向量 top-5 检索 → 编号上下文 → Qwen3.8-27B 生成（pydantic：answer/citations/refused，解析失败重试 1 次降级纯文本）→ FastAPI `POST /ask` → Streamlit 界面。验证：5 个手工问题端到端 + 延迟。完成后 tag `v0.1-baseline`，介入点 B 演示。
+
+Phase 2 可直接复用：
+- 检索：`pipeline/embed.py` 的 `encode_queries()` + Chroma collection `fastapi_zh_v1`（`data/chroma/`）
+- 冒烟已验证检索质量：3 问全部命中正确章节（cos 距离 0.18~0.34）
+- 生成走 `.env` 的 LLM_BASE_URL/LLM_MODEL（`enable_thinking:false`），注意 Git Bash 中文坑：请求一律 Python + UTF-8
 
 ## 环境备忘
 
