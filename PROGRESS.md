@@ -20,13 +20,19 @@
 - [x] 仓库初始化 + 远程推送（commit 31e243a）
 - [x] WORKFLOW.md / PROGRESS.md 落盘
 - [x] requirements.txt / .env.example / .env / 目录骨架
-- [ ] 后台：venv + 依赖安装 + bge-m3 下载（`scripts/setup_env.sh`，日志 `data/cache/setup.log`）
-- [ ] 语料：clone FastAPI 中文文档 → `data/raw/fastapi-zh/`
-- [ ] 验证：文档数 ≥50；bge-m3 加载成功
+- [ ] 后台：venv + 依赖安装 + bge-m3 下载（`scripts/setup_env.sh`，日志 `data/cache/setup.log`；依赖已全部下载完进入安装阶段，剩 bge-m3 下载）
+- [x] 语料：`data/raw/fastapi-zh/` 124 篇 md（943KB）+ `data/raw/fastapi-docs-src/` 461 个代码文件（752KB）
+- [ ] 验证：bge-m3 加载成功
+
+## 语料关键发现（Phase 1 loader 的输入约束）
+
+- 正文代码是占位符 `{* ../../docs_src/xxx.py hl[n] *}`，需在 loader 替换为真实代码块（440 处，仅 1 处指向 docs_src 外的源码，保留文字引用）
+- 标题带自定义锚点（`## 标题 { #anchor }`），清洗时剥离锚点、保留标题文本与层级
+- `/// warning | 警告 ... ///` 告示块转为普通文本标记（如"⚠️ 警告:"）
 
 ## 下一步（Phase 1）
 
-数据管道：loader → cleaner → chunker（标题感知 512/50）→ metadata → 嵌入入 Chroma → 抽检 10 chunk → 介入点 A。
+数据管道：loader（含占位符代码替换）→ cleaner → chunker（标题感知 512/50）→ metadata → 嵌入入 Chroma → 抽检 10 chunk → 介入点 A。
 
 ## 环境备忘
 
