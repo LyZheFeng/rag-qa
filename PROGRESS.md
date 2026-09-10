@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 0 完成 ✅（2026-09-10）→ 下一阶段 Phase 1
+## 状态：Phase 1 完成 ✅（2026-09-10）→ **介入点 A：等用户认可 chunk 样例** → Phase 2
 
 ## 已定决策
 
@@ -30,9 +30,26 @@
 - 标题带自定义锚点（`## 标题 { #anchor }`），清洗时剥离锚点、保留标题文本与层级
 - `/// warning | 警告 ... ///` 告示块转为普通文本标记（如"⚠️ 警告:"）
 
-## 下一步（Phase 1）
+## Phase 1 清单（数据管道）
 
-数据管道：loader（含占位符代码替换）→ cleaner → chunker（标题感知 512/50）→ metadata → 嵌入入 Chroma → 抽检 10 chunk → 介入点 A。
+- [x] `pipeline/`：models / cleaner / loader / chunker / config / embed / store，15 个单测全过（`tests/test_pipeline.py`）
+- [x] 清洗：frontmatter、占位符 440 处全处理（439 解析为真实代码块 + 1 处外部源码保留文字引用）、`{! !}` include 6 处、标题锚点剥离、告示块/选项卡转文本标记、行内 HTML 剥离、base64 超长行截断
+- [x] 切块基线：标题感知 512/50，**不变量 chunk.text == full_text[char_span] 全库 1701/1701 通过**
+- [x] 嵌入入 Chroma：bge-m3（CPU，391s），`data/chroma/` collection `fastapi_zh_v1`，确定性 id + 按文档先删后加，重跑幂等
+- [x] 产物：**122 篇 → 1701 chunk**（字符中位 298 / token 中位 137，最大 348，无截断风险），`data/chunks/chunks.jsonl`
+- [x] 介入点 A 材料：`data/chunks/samples.md`（10 条抽检，含上下文与 span 回切验证）、`data/chunks/stats.md`（分布统计）
+- [x] 检索冒烟：3 个手工问题全部命中正确章节（cos 距离 0.18~0.34）
+
+## 语料关键发现（Phase 1 补充）
+
+- 占位符语法比 Phase 0 记录更丰富：多区间行号 `ln[1:9,29:35]`、`hl[23:26]`、`title["..."]`（17 处）
+- `{!> path !}` / `{! path !}` include 语法（6 处，在代码围栏内嵌入文件原文）
+- `stream-data.md` 有 base64 图片字面量（单行 4000+ 字符），已按 1000+ 字符行截断
+- 排除非正式文档：`_llm-test.md`（翻译 QA 测试页）、`translation-banner.md`（局部片段），124 → 122 篇
+
+## 下一步
+
+**介入点 A**：用户审 `data/chunks/samples.md` + `stats.md` → 认可后进 Phase 2 基线链路（向量 top-5 → 生成 → /ask → Streamlit）。
 
 ## 环境备忘
 

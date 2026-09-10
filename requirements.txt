@@ -11,3 +11,4 @@ openai
 huggingface_hub
 sentence-transformers
 torch
+pytest
