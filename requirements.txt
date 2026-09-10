@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+streamlit
+pydantic
+pydantic-settings
+chromadb
+rank-bm25
+PyMuPDF
+trafilatura
+openai
+huggingface_hub
+sentence-transformers
+torch
