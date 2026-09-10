@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 环境与密钥
+.env
+
+# 数据与模型缓存（语料原始文件视情况放开）
+data/chroma/
+data/cache/
+models/
+
+# 评估产物中间文件
+eval/runs/
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
