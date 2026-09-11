@@ -55,21 +55,25 @@ class QueryRewriter:
 
 
 class RewriteRetriever:
-    """原问题 + 变体各取 hybrid top-N → RRF 跨列表融合 → top-k。
+    """原问题 + 变体各取 hybrid top-N → 加权 RRF 融合 → top-k。
 
     约定:base 必须是 HybridRetriever(借用其 bm25.hit 构造完整 Hit)。
+    原查询权重 orig_weight(默认 4,≈变体总和+1):变体共识只能抬升原排序 6~20 名的
+    chunk,不能凭共识入侵 top-5——平权融合实测会稀释原查询排序(见 results.md v0.4)。
     """
 
-    def __init__(self, base, rewrite_fn, candidates: int = 20, rrf_k: int = 60):
+    def __init__(self, base, rewrite_fn, candidates: int = 20, rrf_k: int = 60, orig_weight: float = 4.0):
         self.base = base
         self.rewrite_fn = rewrite_fn
         self.candidates = candidates
         self.rrf_k = rrf_k
+        self.orig_weight = orig_weight
 
     def retrieve(self, query: str, k: int = 5) -> list[Hit]:
         variants = self.rewrite_fn(query)
         if not variants:  # 改写失败 → 直接走 base 原生检索
             return self.base.retrieve(query, k=k)
         rank_lists = [[h.chunk_id for h in self.base.retrieve(q, k=self.candidates)] for q in [query] + variants]
-        fused = rrf_fuse(*rank_lists, k=self.rrf_k)[:k]
+        weights = [self.orig_weight] + [1.0] * len(variants)
+        fused = rrf_fuse(*rank_lists, k=self.rrf_k, weights=weights)[:k]
         return [self.base.bm25.hit(cid, rank, score) for rank, (cid, score) in enumerate(fused, 1)]

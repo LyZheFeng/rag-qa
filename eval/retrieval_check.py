@@ -92,6 +92,16 @@ def main() -> None:
         hybrid = HybridRetriever(vector, BM25Index.from_chunks_file(s.chunks_path), s.hybrid_candidates, s.rrf_k)
         rerank = RerankRetriever(hybrid, candidates=s.hybrid_candidates)
         print("rerank(v0.3)", evaluate(rerank, "rerank", questions), flush=True)
+    if "rewrite" in wanted:
+        from openai import OpenAI
+
+        from app.hybrid import BM25Index, HybridRetriever
+        from app.rewrite import QueryRewriter, RewriteRetriever
+
+        hybrid = HybridRetriever(vector, BM25Index.from_chunks_file(s.chunks_path), s.hybrid_candidates, s.rrf_k)
+        rewriter = QueryRewriter(OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=30), s.llm_model)
+        rewrite = RewriteRetriever(hybrid, rewriter.rewrite, s.hybrid_candidates, s.rrf_k)
+        print("rewrite(v0.4)", evaluate(rewrite, "rewrite", questions), flush=True)
 
 
 if __name__ == "__main__":
