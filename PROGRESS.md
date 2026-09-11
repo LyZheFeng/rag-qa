@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 5 完成 ✅（2026-09-11，校准曲线留档，拒答双指标达标不加闸门）→ 仅剩 Phase 6 部署+文档（介入点 D 待用户）
+## 状态：Phase 6 备战完成 ✅（Docker 本机全链路验证 + README 终稿，2026-09-11）→ 唯余部署：等用户服务器到位（介入点 D 延后）
 
 ## 已定决策
 
@@ -88,7 +88,12 @@
 - [x] v0.5-chunking **收官**(2026-09-11):三案 doc 口径差距 ≤1.3pp(heading 94.4/fixed 95.6/parentchild 95.0),parent-child 快评 4.64 vs v0.2 的 4.62 打平——**切块不是瓶颈**,heading-512-50 保持现役;FixedChunker 触底退化 bug 修复入单测
 - [x] 30 条一致性抽样 **以跨模型盲评完成**(2026-09-11):独立第三方模型 vs Qwen judge,±1 一致率 100%(24/24)、Pearson 0.886,三个误拒样本被独立同判;judge 可信度验证通过,入 results.md(人工打分文件保留,用户随时可补)
 - [x] Phase 5 拒答校准(2026-09-11,commit 59722e7):分数阈值闸门原理性失效(无法答题 top-1 中位 0.94,与可答题分布重叠),LLM 内容级拒答工作点(误拒 7.5%/正确拒答 100%)支配全曲线,双指标达标,**维持现状**;`eval/calibration.md` 留档
-- [ ] Phase 6:Docker + frp 部署(**介入点 D**)+ README 终稿 + 公网验收
+- [x] Phase 6 **备战完成**(2026-09-11):Dockerfile/compose/dockerignore + README 终稿;
+  本机 Docker 全链路验证通过(build → 首启自动下载 bge-m3 → hybrid 1701 chunks → /health OK →
+  /ask 端到端 2.8s → UI 200)。途中修三个潜伏 bug:compose 注入宿主机 HF_HOME、
+  embed.py 强制 HF_HUB_OFFLINE 挡首启下载、/health 写死 vector 检索器属性(v0.2 起潜伏)
+- [ ] Phase 6 部署:**等用户提供服务器**(老师分配)→ 装 Docker → `docker compose up -d`
+  → frp 穿透 → 公网验收 → 仓库转公开
 
 ### Phase 3 关键发现
 
