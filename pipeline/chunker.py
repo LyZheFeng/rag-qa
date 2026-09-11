@@ -39,6 +39,79 @@ def _joiner(u: Unit) -> str:
     return "\n" if u.same_block_prev else "\n\n"
 
 
+class FixedChunker(ChunkStrategy):
+    """固定窗口切块(v0.5 对比项):无视标题,按行贪心打包到 size,窗口间保留 ≈overlap 重叠。
+
+    与 HeadingAwareChunker 同样遵守不变量 chunk.text == full_text[char_span];
+    超长单行独占一块(与标题策略对超长块的行为一致)。section_path 取窗口首行所在块的标题链。
+    """
+
+    def __init__(self, size: int = 512, overlap: int = 50):
+        self.size = size
+        self.overlap = overlap
+        self.name = f"fixed-{size}-{overlap}"
+
+    def chunk(self, doc: Doc) -> list[Chunk]:
+        text = doc.full_text
+        lines = text.split("\n")
+        offsets: list[int] = []
+        pos = 0
+        for ln in lines:
+            offsets.append(pos)
+            pos += len(ln) + 1
+
+        def heading_at(line_idx: int) -> str:
+            start = offsets[line_idx]
+            path: tuple[str, ...] = ()
+            for b in doc.blocks:
+                if b.char_start <= start:
+                    path = b.heading_path
+                else:
+                    break
+            return " > ".join(path) if path else "(无标题)"
+
+        chunks: list[Chunk] = []
+        i = 0
+        while i < len(lines):
+            j, cur = i, len(lines[i])
+            while j + 1 < len(lines) and cur + 1 + len(lines[j + 1]) <= self.size:
+                j += 1
+                cur += 1 + len(lines[j])
+            start, end = offsets[i], offsets[j] + len(lines[j])
+            chunks.append(
+                Chunk(
+                    chunk_id=f"{doc.stem}#{len(chunks):04d}",
+                    doc_name=doc.doc_name,
+                    seq=len(chunks),
+                    section_path=heading_at(i),
+                    text=text[start:end],
+                    char_start=start,
+                    char_end=end,
+                    n_chars=end - start,
+                    hash=text_hash(text[start:end]),
+                )
+            )
+            if end >= len(text):
+                break  # 窗口已覆盖到全文末尾,不再回退(否则向末尾收敛出退化窗口)
+            # 下一窗口起点:回退到 ≈end-overlap 的行首,至少前进一行
+            k = j + 1
+            target = end - self.overlap
+            while k - 1 > i and offsets[k - 1] >= target:
+                k -= 1
+            i = k
+
+        seen: set[str] = set()
+        unique: list[Chunk] = []
+        for c in chunks:
+            if c.hash not in seen:
+                seen.add(c.hash)
+                unique.append(c)
+        for n, c in enumerate(unique):
+            c.seq = n
+            c.chunk_id = f"{doc.stem}#{n:04d}"
+        return unique
+
+
 class HeadingAwareChunker(ChunkStrategy):
     def __init__(self, size: int = 512, overlap: int = 50):
         self.size = size

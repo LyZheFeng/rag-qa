@@ -64,20 +64,32 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None, help="只处理前 N 篇文档（冒烟）")
     ap.add_argument("--size", type=int, default=512, help="chunk 字符数上限")
     ap.add_argument("--overlap", type=int, default=50, help="chunk 重叠字符数")
+    ap.add_argument("--strategy", default="heading", choices=["heading", "fixed"], help="切块策略（v0.5 对比）")
+    ap.add_argument("--tag", default="", help="产物 jsonl 后缀标记（chunks_{tag}.jsonl，默认覆盖主文件）")
     ap.add_argument("--collection", default="fastapi_zh_v1", help="Chroma collection 名（实验对比用）")
     ap.add_argument("--no-embed", action="store_true", help="只产出 chunks.jsonl，不嵌入不入库")
     args = ap.parse_args()
 
     settings = get_settings()
     t0 = time.time()
-    print(f"[1/3] 加载 + 清洗 + 切块（size={args.size}/overlap={args.overlap}）...")
-    strategy = HeadingAwareChunker(size=args.size, overlap=args.overlap)
+    print(f"[1/3] 加载 + 清洗 + 切块（strategy={args.strategy} size={args.size}/overlap={args.overlap}）...")
+    from pipeline.chunker import FixedChunker
+
+    strategy = (
+        HeadingAwareChunker(size=args.size, overlap=args.overlap)
+        if args.strategy == "heading"
+        else FixedChunker(size=args.size, overlap=args.overlap)
+    )
     chunks, stats = build_chunks(strategy, args.limit)
 
     out_dir = settings.chunks_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    suffix = "" if args.limit is None else f".L{args.limit}"
-    jsonl_path = out_dir / f"chunks{suffix}.jsonl"
+    parts = ["chunks"]
+    if args.tag:
+        parts.append(args.tag)
+    if args.limit:
+        parts.append(f"L{args.limit}")
+    jsonl_path = out_dir / ("_".join(parts) + ".jsonl")
     with jsonl_path.open("w", encoding="utf-8") as f:
         for c in chunks:
             f.write(json.dumps(c.to_record(), ensure_ascii=False) + "\n")

@@ -148,3 +148,39 @@ def test_rewrite_fallback_no_variants():
 
     rr = RewriteRetriever(FakeBase(), lambda q: [], candidates=2)
     assert rr.retrieve("问题", k=3) == ["hit:问题:3"]  # 无变体退化为 base
+
+
+def test_parent_child_maps_and_retriever(tmp_path):
+    from app.parentchild import ParentChildRetriever, build_pc_maps
+
+    (tmp_path / "chunks_pc.jsonl").write_text(
+        '{"chunk_id":"a#0000","doc_name":"a.md","seq":0,"section_path":"S1","text":"子1","n_chars":2,"char_span":[0,2],"hash":"h1"}\n'
+        '{"chunk_id":"a#0001","doc_name":"a.md","seq":1,"section_path":"S1","text":"子2","n_chars":2,"char_span":[2,4],"hash":"h2"}\n'
+        '{"chunk_id":"a#0002","doc_name":"a.md","seq":2,"section_path":"S2","text":"子3","n_chars":2,"char_span":[4,6],"hash":"h3"}\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "chunks_pc_parent.jsonl").write_text(
+        '{"chunk_id":"a#0000","doc_name":"a.md","seq":0,"section_path":"S1","text":"整节1","n_chars":3,"char_span":[0,3],"hash":"hp1"}\n'
+        '{"chunk_id":"a#0001","doc_name":"a.md","seq":1,"section_path":"S2","text":"整节2","n_chars":3,"char_span":[3,6],"hash":"hp2"}\n',
+        encoding="utf-8",
+    )
+    c2p, parents = build_pc_maps(tmp_path)
+    assert c2p == {"a#0000": "P:a#0000", "a#0001": "P:a#0000", "a#0002": "P:a#0001"}
+    assert set(parents) == {"P:a#0000", "P:a#0001"}
+
+    from app.schemas import Hit
+
+    class FakeChild:
+        def retrieve(self, q, k=5):  # 命中顺序:子2(S1)、子3(S2)、子1(S1)
+            return [
+                Hit(index=1, chunk_id="a#0001", doc_name="a.md", section_path="S1", text="子2", score=0.9),
+                Hit(index=2, chunk_id="a#0002", doc_name="a.md", section_path="S2", text="子3", score=0.8),
+                Hit(index=3, chunk_id="a#0000", doc_name="a.md", section_path="S1", text="子1", score=0.7),
+            ]
+
+    pc = ParentChildRetriever(FakeChild(), c2p, parents, candidates=3)
+    hits = pc.retrieve("q", k=5)
+    # 同节去重:P:a#0000(由子2 带入,子1 不再产生)、P:a#0001
+    assert [h.chunk_id for h in hits] == ["P:a#0000", "P:a#0001"]
+    assert hits[0].text == "整节1"  # 生成侧拿到整节上下文
+    assert [h.index for h in hits] == [1, 2]

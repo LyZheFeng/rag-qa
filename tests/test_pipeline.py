@@ -167,3 +167,47 @@ def test_chunker_dedup_within_doc():
     assert len([c for c in chunks if c.text == "重复内容。"]) == 1
     ids = [c.chunk_id for c in chunks]
     assert ids == sorted(ids) and len(set(ids)) == len(ids)
+
+
+# ---------- v0.5 FixedChunker ----------
+
+def _make_doc():
+    from pipeline.models import Block, Doc
+
+    blocks = [
+        Block(1, ("标题一",), "text", "标题一的介绍段落," * 20, 0, 0),
+        Block(2, ("标题一", "子节",), "text", "子节内容," * 40, 0, 0),
+        Block(3, ("标题二",), "code", "print(1)\n" * 60, 0, 0),
+    ]
+    full = "\n\n".join(b.text for b in blocks)
+    pos = 0
+    for b in blocks:
+        b.char_start, b.char_end = pos, pos + len(b.text)
+        pos += len(b.text) + 2
+    return Doc(doc_name="t/x.md", title="X", full_text=full, blocks=blocks)
+
+
+def test_fixed_chunker_span_invariant_and_size():
+    from pipeline.chunker import FixedChunker
+
+    doc = _make_doc()
+    chunks = FixedChunker(512, 50).chunk(doc)
+    assert len(chunks) > 1
+    for c in chunks:
+        assert c.text == doc.full_text[c.char_start : c.char_end]
+        assert c.n_chars == len(c.text)
+    # 常规块不超 size(单行超长除外,本例无超长行)
+    assert all(c.n_chars <= 512 for c in chunks)
+
+
+def test_fixed_chunker_cover_and_overlap():
+    from pipeline.chunker import FixedChunker
+
+    doc = _make_doc()
+    chunks = FixedChunker(512, 50).chunk(doc)
+    assert chunks[0].char_start == 0
+    assert chunks[-1].char_end == len(doc.full_text)  # 全覆盖
+    for a, b in zip(chunks, chunks[1:]):
+        assert b.char_start < a.char_end  # 相邻窗口有重叠
+    ids = [c.chunk_id for c in chunks]
+    assert ids == [f"t.x#{i:04d}" for i in range(len(chunks))]
