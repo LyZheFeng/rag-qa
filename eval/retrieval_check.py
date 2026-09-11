@@ -44,7 +44,7 @@ def evaluate(retriever, name: str, questions: list[dict]) -> dict:
         rows.append((r["ids"], r["docs"], q))
         if i % 10 == 0:
             ms = mean([done[q["qid"]]["elapsed_ms"] for q in questions[:i] if q["qid"] in done])
-            print(f"  [{name}] {i}/{len(questions)} 单题均值 {ms*1000:.0f}ms", flush=True)
+            print(f"  [{name}] {i}/{len(questions)} 单题均值 {ms:.0f}ms", flush=True)
     f.close()
     elapsed = [done[q["qid"]]["elapsed_ms"] for q in questions if q["qid"] in done]
     return {
@@ -52,7 +52,7 @@ def evaluate(retriever, name: str, questions: list[dict]) -> dict:
         "recall@10_chunk": mean([recall_chunk(i, q.get("gold_chunk_id"), 10) for i, d, q in rows]),
         "recall@5_doc": mean([recall_doc(d, q.get("gold_doc"), 5) for i, d, q in rows]),
         "MRR": mean([reciprocal_rank(i, q.get("gold_chunk_id")) for i, d, q in rows]),
-        "单题均值ms": round(mean(elapsed) * 1000) if elapsed else 0,
+        "单题均值ms": round(mean(elapsed)) if elapsed else 0,
         "n": len(rows),
     }
 
