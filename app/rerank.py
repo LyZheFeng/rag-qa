@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import math
 from functools import lru_cache
 
 from .schemas import Hit
@@ -37,5 +38,8 @@ class RerankRetriever:
         ranked = sorted(zip(pool, scores), key=lambda x: -float(x[1]))[:k]
         hits: list[Hit] = []
         for rank, (h, s) in enumerate(ranked, 1):
-            hits.append(h.model_copy(update={"index": rank, "score": round(float(s), 4)}))
+            # CrossEncoder 输出原始 logit(可正可负),过 sigmoid 转成 0~1 匹配度供展示
+            raw = float(s)
+            prob = 1.0 / (1.0 + math.exp(-raw)) if -60 < raw < 60 else (1.0 if raw > 0 else 0.0)
+            hits.append(h.model_copy(update={"index": rank, "score": round(prob, 4)}))
         return hits

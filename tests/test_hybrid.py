@@ -88,7 +88,7 @@ def test_rerank_reorders_and_truncates():
     hits = rr.retrieve("q", k=2)
     assert [h.chunk_id for h in hits] == ["c3", "c1"]  # 按精排分重排并截断
     assert [h.index for h in hits] == [1, 2]
-    assert hits[0].score == 0.9
+    assert hits[0].score == round(1 / (1 + 2.718281828459045 ** -0.9), 4)  # raw logit 过 sigmoid
 
 
 def test_rerank_pool_le_k_passthrough():

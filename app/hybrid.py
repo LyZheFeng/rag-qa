@@ -128,4 +128,6 @@ class HybridRetriever:
         v_ids = [h.chunk_id for h in self.vector.retrieve(query, k=self.candidates)]
         b_ids = self.bm25.search(query, self.candidates)
         fused = rrf_fuse(v_ids, b_ids, k=self.rrf_k)[:k]
-        return [self.bm25.hit(cid, rank, score) for rank, (cid, score) in enumerate(fused, 1)]
+        # RRF 融合分归一化到 0~1(理论最大 = 两路各 1/(k+1)),否则 UI 显示 0.03 观感像坏了
+        scale = 2.0 / (self.rrf_k + 1)
+        return [self.bm25.hit(cid, rank, min(1.0, score / scale)) for rank, (cid, score) in enumerate(fused, 1)]

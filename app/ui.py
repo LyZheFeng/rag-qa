@@ -34,7 +34,7 @@ def render_answer(resp: AskResponse) -> None:
                    f"检索 {resp.latency.retrieve_ms}ms + 生成 {resp.latency.generate_ms}ms "
                    f"= {resp.latency.total_ms}ms · 解析 {resp.parse_mode}")
         for h in resp.cited:
-            with st.expander(f"[{h.index}] {h.doc_name} · {h.section_path}（相似度 {h.score:.3f}）"):
+            with st.expander(f"[{h.index}] {h.doc_name} · {h.section_path}（匹配度 {h.score:.2f}）"):
                 st.markdown(h.text)
     else:
         st.caption(f"无引用 · 检索 {len(resp.retrieved)} 条 · {resp.latency.total_ms}ms · 解析 {resp.parse_mode}")
@@ -42,7 +42,7 @@ def render_answer(resp: AskResponse) -> None:
 
 def main() -> None:
     st.title("📚 FastAPI 中文文档问答")
-    st.caption("基线链路 v0.1：bge-m3 向量 top-5 检索 → Qwen 生成（带引用/拒答）· 语料 122 篇官方中文文档")
+    st.caption("v0.2-hybrid：BM25+向量混合检索 top-5 → Qwen 生成（带引用/拒答）· 语料 122 篇官方中文文档")
 
     if "history" not in st.session_state:
         st.session_state.history = []
