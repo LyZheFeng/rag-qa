@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 3 完成 ✅ + Phase 4 v0.2 完成 ✅（tag `v0.2-hybrid`，2026-09-10）→ 明日 v0.3-rerank（代码已就绪）
+## 状态：v0.2-hybrid 为当前最优（tag `v0.2-hybrid`）→ v0.3-rerank 已搁置（CPU/电池环境不可行，2026-09-11）→ 下一步 v0.4-rewrite
 
 ## 已定决策
 
@@ -82,7 +82,8 @@
 
 - [x] v0.2-hybrid:内置 BM25(中文 bigram+ASCII 词)+ RRF 融合,RETRIEVER 开关;Depends 弱项修复(top-3 全是代码示例 chunk)
 - [x] v0.3-rerank 代码预备:CrossEncoder 精排器(bge-reranker-v2-m3 已下载验证,CPU 加载 4min/打分 0.14s),RETRIEVER=rerank 启用,**待跑**:检索层验证 → 快评 → 全量
-- [ ] v0.4-rewrite 多查询扩展
+- [x] v0.3-rerank **搁置**(2026-09-11):检索层验证在 CPU+电池供电下 75 分钟未跑完(每题 >20s,比 hybrid 慢两个数量级),环境不可行;代码/开关保留,GPU 机器可重启;教训入 pitfalls(离线脚本要增量输出,重模型先 10 题实测耗时)
+- [ ] v0.4-rewrite 多查询扩展(下一步,预估每题 +2s)
 - [ ] v0.5-chunking 对比(固定/标题语义/父子)
 - [ ] 30 条人机一致性抽样(需用户参与,记录已够)
 

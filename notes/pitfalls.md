@@ -52,3 +52,9 @@ embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找�
 问题:直接 import sentence_transformers/huggingface_hub 的脚本(模型验证、download_models.py)没先加载 pipeline.config,HF_HOME 落空,模型下到 C 盘默认 ~/.cache
 尝试:事后 robocopy /MOVE 搬到 D 盘(注意 Git Bash 会把 robocopy 的 /E /MOVE 吃成路径,须经 PowerShell 调用)
 结论:任何动 HF 的脚本,第一行必须 import pipeline.config(或显式设 HF_HOME);download_models.py 已修
+
+## rerank 在 CPU(电池供电)上不可行(2026-09-11,v0.3)
+
+问题:bge-reranker-v2-m3 精排 20 候选/题,满核 CPU 跑 160 题超过 75 分钟未完成(每题 >20s),微基准(0.14s/2对)严重低估——长上下文 512 token + 电池限速 + 15 核持续满载的综合代价
+尝试:等待 75 分钟后终止;期间无中间进度输出(检索对比脚本缺增量落盘,设计缺陷一并记入)
+结论:v0.3-rerank 在本机搁置(留代码与开关);CPU 部署场景选 v0.2-hybrid(检索 <100ms);若 Phase 6 部署到有 GPU 的机器可重开。教训:重型离线脚本必须有增量输出/断点,快评前先小样本(如 10 题)实测单题耗时

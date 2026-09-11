@@ -27,6 +27,13 @@
 - 改动仅检索层(BM25 中文 bigram + RRF,生成与 prompt 零改动),指标提升可归因于检索
 - 剩余误拒 12/160,主要是个别问题表述与 gold chunk 词汇重合度低的召回死角 → v0.3-rerank(粗排 20 精排 5)与 v0.4-rewrite(多查询扩展)的攻击面
 
+## v0.3-rerank:环境不可行,搁置(2026-09-11)
+
+- 检索层验证在本机(CPU + 电池供电)运行 75+ 分钟未完成:rerank 每题 20+ 秒,
+  比 hybrid(毫秒级)慢两个数量级,微基准(0.14s/2 对)严重低估了 512 token 长上下文的真实成本
+- 代码与 `RETRIEVER=rerank` 开关保留,Phase 6 若部署到 GPU 机器可重启验证
+- 当前最优版本保持 **v0.2-hybrid**;优化主线转向 v0.4-rewrite(LLM 查询扩展,预估每题 +2s)
+
 ## 运行留档
 
 - v0.1-baseline:`eval/runs/v0.1-baseline_20260910_210539/`(records.jsonl + summary.json)
