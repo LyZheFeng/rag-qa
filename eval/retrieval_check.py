@@ -34,15 +34,17 @@ def main() -> None:
     questions = [q for q in load_jsonl(DATA_EVAL / "questions.jsonl") if q["type"] != "unanswerable"]
     print(f"可答题 {len(questions)} 道(事实+推理)")
 
-    from app.retriever import VectorRetriever, get_retriever
+    from app.retriever import VectorRetriever
 
     vector = VectorRetriever.from_settings()
     s = get_settings()
     from app.hybrid import BM25Index, HybridRetriever
+    from app.rerank import RerankRetriever
 
     hybrid = HybridRetriever(vector, BM25Index.from_chunks_file(s.chunks_path), s.hybrid_candidates, s.rrf_k)
+    rerank = RerankRetriever(hybrid, candidates=s.hybrid_candidates)
 
-    for name, retr in (("vector(v0.1)", get_retriever()), ("hybrid(v0.2)", hybrid)):
+    for name, retr in (("vector(v0.1)", vector), ("hybrid(v0.2)", hybrid), ("rerank(v0.3)", rerank)):
         m = evaluate(retr, questions)
         print(f"{name:14} " + "  ".join(f"{k}={v}" for k, v in m.items()), flush=True)
 
