@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态：Phase 6 备战完成 ✅（Docker 本机全链路验证 + README 终稿，2026-09-11）→ 唯余部署：等用户服务器到位（介入点 D 延后）
+## 状态：Phase 6 备战完成 ✅（Docker 本机全链路验证 + README 终稿，2026-09-11）→ 部署延后约 1 个月（用户等老师分配服务器），Docker 产物已全量回收（重建约 15 分钟）
 
 ## 已定决策
 
@@ -92,8 +92,9 @@
   本机 Docker 全链路验证通过(build → 首启自动下载 bge-m3 → hybrid 1701 chunks → /health OK →
   /ask 端到端 2.8s → UI 200)。途中修三个潜伏 bug:compose 注入宿主机 HF_HOME、
   embed.py 强制 HF_HUB_OFFLINE 挡首启下载、/health 写死 vector 检索器属性(v0.2 起潜伏)
-- [ ] Phase 6 部署:**等用户提供服务器**(老师分配)→ 装 Docker → `docker compose up -d`
-  → frp 穿透 → 公网验收 → 仓库转公开
+- [ ] Phase 6 部署(**延后约 1 个月**,等老师分配服务器;2026-09-11 已回收全部 Docker 产物
+  ~9.4GB,含 vhdx 稀疏压缩 9.36→1.86GB,重建流程已验证:Dockerfile/compose 在库,
+  服务器到位后 `docker compose up -d` 即可)→ frp 穿透 → 公网验收 → 仓库转公开
 
 ### Phase 3 关键发现
 
