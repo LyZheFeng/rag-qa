@@ -72,4 +72,12 @@ def get_retriever() -> VectorRetriever:
         from .rerank import RerankRetriever
 
         return RerankRetriever(hybrid, candidates=s.hybrid_candidates)
+    if s.retriever == "rewrite":
+        from openai import OpenAI
+
+        from .rewrite import QueryRewriter, RewriteRetriever
+
+        client = OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=30)
+        rewriter = QueryRewriter(client, s.llm_model)
+        return RewriteRetriever(hybrid, rewriter.rewrite, s.hybrid_candidates, s.rrf_k)
     raise ValueError(f"未知 RETRIEVER 配置:{s.retriever}")

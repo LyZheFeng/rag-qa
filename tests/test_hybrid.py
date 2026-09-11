@@ -104,3 +104,47 @@ def test_rerank_pool_le_k_passthrough():
 
     rr = RerankRetriever(FakeBase(), reranker=Boom(), candidates=3)
     assert rr.retrieve("q", k=3) == ["x", "x"]
+
+
+def test_rrf_fuse_multi_list():
+    fused = rrf_fuse(["a", "b"], ["b", "c"], ["a", "d"])
+    ids = [x for x, _ in fused]
+    # a(两路) 与 b(两路) 领先;单路的 c/d 在后
+    assert set(ids[:2]) == {"a", "b"}
+    assert fused[0][1] > fused[2][1]
+
+
+def test_rewrite_retriever_fuses_variants():
+    from app.rewrite import RewriteRetriever
+    from app.hybrid import BM25Index
+
+    chunks = [
+        {"chunk_id": "doc.a#0000", "doc_name": "doc/a.md", "seq": 0,
+         "section_path": "查询参数校验", "text": "缺少参数时 type 为 missing msg 为 Field required",
+         "n_chars": 40, "char_span": [0, 40], "hash": "h1"},
+        {"chunk_id": "doc.b#0000", "doc_name": "doc/b.md", "seq": 0,
+         "section_path": "背景", "text": "FastAPI 框架介绍", "n_chars": 10, "char_span": [0, 10], "hash": "h2"},
+    ]
+    idx = BM25Index(chunks)
+
+    class FakeHybrid:  # 借用 bm25.hit 的最小桩
+        bm25 = idx
+        def retrieve(self, q, k=5):
+            return [idx.hit(cid, i + 1, 0.5) for i, cid in enumerate(idx.search(q, k))]
+
+    # 原问题命中 b,变体命中 a → 融合后两路都保留
+    rr = RewriteRetriever(FakeHybrid(), lambda q: ["missing Field required 参数错误"], candidates=2)
+    hits = rr.retrieve("FastAPI 框架", k=2)
+    assert {h.chunk_id for h in hits} == {"doc.b#0000", "doc.a#0000"}
+    assert all(h.text for h in hits)
+
+
+def test_rewrite_fallback_no_variants():
+    from app.rewrite import RewriteRetriever
+
+    class FakeBase:
+        def retrieve(self, q, k=5):
+            return [f"hit:{q}:{k}"]
+
+    rr = RewriteRetriever(FakeBase(), lambda q: [], candidates=2)
+    assert rr.retrieve("问题", k=3) == ["hit:问题:3"]  # 无变体退化为 base

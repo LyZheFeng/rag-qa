@@ -36,10 +36,10 @@ def tokenize_zh(text: str) -> list[str]:
     return tokens
 
 
-def rrf_fuse(rank_a: list[str], rank_b: list[str], k: int = 60) -> list[tuple[str, float]]:
-    """Reciprocal Rank Fusion:score = Σ 1/(k+rank)。返回按融合分排序的 (id, score)。"""
+def rrf_fuse(*rank_lists: list[str], k: int = 60) -> list[tuple[str, float]]:
+    """Reciprocal Rank Fusion:score = Σ 1/(k+rank),支持任意路数。返回按融合分排序的 (id, score)。"""
     scores: dict[str, float] = {}
-    for ranks in (rank_a, rank_b):
+    for ranks in rank_lists:
         for i, cid in enumerate(ranks, 1):
             scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + i)
     return sorted(scores.items(), key=lambda x: -x[1])
