@@ -6,6 +6,8 @@ Parent ids use the "P:" prefix to avoid same-name collisions with child chunk_id
 
 from __future__ import annotations
 
+import json
+
 from .schemas import Hit
 
 
