@@ -33,10 +33,16 @@ def _svc(request: Request) -> RagService:
 @app.get("/health")
 def health(request: Request) -> dict:
     svc = _svc(request)
+    r = svc.retriever  # 沿包装链下钻到 VectorRetriever(vector/base/child 三种包装名)
+    while not hasattr(r, "collection"):
+        r = getattr(r, "vector", None) or getattr(r, "base", None) or getattr(r, "child", None)
+        if r is None:
+            raise HTTPException(status_code=500, detail="无法定位底层向量检索器")
     return {
         "status": "ok",
-        "chunks": svc.retriever.collection.count(),
-        "embed_dim": svc.retriever.embedder.dim,
+        "retriever": type(svc.retriever).__name__,
+        "chunks": r.collection.count(),
+        "embed_dim": r.embedder.dim,
         "llm_model": svc.generator.model,
     }
 
