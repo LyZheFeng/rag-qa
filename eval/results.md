@@ -59,6 +59,19 @@
   全量才暴露——探测只防超时,不做质量结论
 - 代码保留(app/rewrite.py,RETRIEVER=rewrite)
 
+## v0.5-chunking:切块不是瓶颈,现役方案保持(2026-09-11)
+
+- doc 口径三方对比(160 可答题,chunk 口径因 id 体系不同不可比):
+  heading(现役) 94.4%/MRR 0.845 | fixed-512-50 **95.6%/0.869** | parent-child 95.0%/0.829
+  ——三案差距 ≤1.3pp,切块方案对"找对文档"影响甚微
+- parent-child 50 题快评(唯一有生成侧假设的方案,整节上下文喂生成):
+  正确性 4.64 vs v0.2 同子集 4.62,打平;事实 +0.08/推理 -0.07;
+  faithfulness 0.947 vs 0.976(整节上下文略增不实声明空间);误拒 5.0% vs 2.5%
+- **结论:heading-512-50 保持现役**;fixed 的 +1.3pp doc 增益不值得丢失标题结构;
+  parent-child 生成侧假设未兑现。Phase 4 优化循环就此收官
+- 附注:parent-child 的 chunk 口径指标显示 0 属度量体系错位(父块 id ≠ gold 子块 id),
+  以 doc 口径与端到端为准
+
 ## 运行留档
 
 - v0.1-baseline:`eval/runs/v0.1-baseline_20260910_210539/`(records.jsonl + summary.json)
