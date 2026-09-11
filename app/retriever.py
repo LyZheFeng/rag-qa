@@ -80,4 +80,12 @@ def get_retriever() -> VectorRetriever:
         client = OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=30)
         rewriter = QueryRewriter(client, s.llm_model)
         return RewriteRetriever(hybrid, rewriter.rewrite, s.hybrid_candidates, s.rrf_k)
+    if s.retriever == "parentchild":  # v0.5:子块检索 → 父块(整节)喂生成
+        from .hybrid import BM25Index as _BMI
+        from .parentchild import ParentChildRetriever, build_pc_maps
+
+        child_vec = VectorRetriever.from_settings("fastapi_zh_pc")
+        child_hybrid = HybridRetriever(child_vec, _BMI.from_chunks_file(s.chunks_dir / "chunks_pc.jsonl"), s.hybrid_candidates, s.rrf_k)
+        c2p, parents = build_pc_maps(s.chunks_dir)
+        return ParentChildRetriever(child_hybrid, c2p, parents, candidates=s.hybrid_candidates)
     raise ValueError(f"未知 RETRIEVER 配置:{s.retriever}")
