@@ -4,6 +4,8 @@ services:
     image: rag-qa:latest
     command: python -m uvicorn app.api:app --host 0.0.0.0 --port 8000
     env_file: .env
+    environment:
+      - HF_HOME=/models  # 覆盖 .env 里的宿主机 Windows 路径
     ports:
       - "8000:8000"
     volumes:
@@ -14,6 +16,8 @@ services:
     image: rag-qa:latest
     command: streamlit run app/ui.py --server.address 0.0.0.0 --server.port 8501 --browser.gatherUsageStats false
     env_file: .env
+    environment:
+      - HF_HOME=/models
     ports:
       - "8501:8501"
     volumes:

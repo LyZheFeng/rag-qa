@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 
 class BgeM3Embedder:
     def __init__(self, model_name: str = "BAAI/bge-m3"):
-        os.environ.setdefault("HF_HUB_OFFLINE", "1")  # 模型已缓存，禁网避免偶发重连
+        # 仅当模型已在 HF 缓存时才禁网(防偶发重连);全新环境(如容器首启)必须放行下载
+        cache_marker = Path(os.environ.get("HF_HOME", "")) / "hub" / ("models--" + model_name.replace("/", "--"))
+        if cache_marker.exists():
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
         from sentence_transformers import SentenceTransformer
 
         self.model = SentenceTransformer(model_name, device="cpu")
