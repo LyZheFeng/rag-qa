@@ -92,8 +92,9 @@
   本机 Docker 全链路验证通过(build → 首启自动下载 bge-m3 → hybrid 1701 chunks → /health OK →
   /ask 端到端 2.8s → UI 200)。途中修三个潜伏 bug:compose 注入宿主机 HF_HOME、
   embed.py 强制 HF_HUB_OFFLINE 挡首启下载、/health 写死 vector 检索器属性(v0.2 起潜伏)
-- [ ] Phase 6 部署(**延后约 1 个月**,等老师分配服务器;2026-09-11 已回收全部 Docker 产物
-  ~9.4GB,含 vhdx 稀疏压缩 9.36→1.86GB,重建流程已验证:Dockerfile/compose 在库,
+- [ ] Phase 6 部署(**延后约 1 个月**,等老师分配服务器;2026-09-11 已回收全部 Docker 产物,
+  D 盘恢复至 671.9GB:prune + vhdx 稀疏压缩 9.36→1.86GB + 注销 docker-desktop WSL 发行版并删 vhdx;
+  Docker Desktop 下月启动会自动重建引擎,重建流程已验证:Dockerfile/compose 在库,
   服务器到位后 `docker compose up -d` 即可)→ frp 穿透 → 公网验收 → 仓库转公开
 
 ### Phase 3 关键发现
