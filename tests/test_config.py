@@ -54,31 +54,87 @@ def _write_chunks(path: Path, lines: list[str]) -> Path:
 def test_manifest_roundtrip_ok(tmp_path):
     chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a", "b", "c"])
     write_manifest(tmp_path, chunks, collection="c1", embed_model="m", chunk_count=3)
-    state, msg, m = check_manifest(tmp_path, chunks, collection="c1")
+    state, msg, m = check_manifest(tmp_path, chunks, collection="c1", embed_model="m")
     assert state == "ok"
     assert m["chunk_count"] == 3
+    assert (tmp_path / "manifest.c1.json").exists()  # 按 collection 分文件
 
 
 def test_manifest_detects_chunks_drift(tmp_path):
     chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a", "b", "c"])
     write_manifest(tmp_path, chunks, collection="c1", embed_model="m", chunk_count=3)
     _write_chunks(chunks, ["a", "b"])  # 语料/切块更新了,索引没重建
-    state, _, _ = check_manifest(tmp_path, chunks, collection="c1")
+    state, _, _ = check_manifest(tmp_path, chunks, collection="c1", embed_model="m")
     assert state == "mismatch"
 
 
 def test_manifest_detects_collection_mismatch(tmp_path):
     chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
     write_manifest(tmp_path, chunks, collection="c1", embed_model="m", chunk_count=1)
-    state, _, _ = check_manifest(tmp_path, chunks, collection="c2")
+    # 模拟错拷:manifest.c1.json 被复制成 manifest.c2.json,内容记的还是 c1
+    (tmp_path / "manifest.c2.json").write_text(
+        (tmp_path / "manifest.c1.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    state, _, _ = check_manifest(tmp_path, chunks, collection="c2", embed_model="m")
     assert state == "mismatch"
+
+
+def test_manifest_detects_embed_model_mismatch(tmp_path):
+    chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
+    write_manifest(tmp_path, chunks, collection="c1", embed_model="BAAI/bge-m3", chunk_count=1)
+    state, msg, _ = check_manifest(tmp_path, chunks, collection="c1", embed_model="other/model")
+    assert state == "mismatch"
+    assert "嵌入模型" in msg
+
+
+def test_manifest_per_collection_coexist(tmp_path):
+    # 主库与 pc 库各绑各的,互不覆盖
+    main = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
+    pc = _write_chunks(tmp_path / "chunks_pc.jsonl", ["b", "c"])
+    write_manifest(tmp_path, main, collection="fastapi_zh_v1", embed_model="m", chunk_count=1)
+    write_manifest(tmp_path, pc, collection="fastapi_zh_pc", embed_model="m", chunk_count=2)
+    assert check_manifest(tmp_path, main, collection="fastapi_zh_v1", embed_model="m")[0] == "ok"
+    assert check_manifest(tmp_path, pc, collection="fastapi_zh_pc", embed_model="m")[0] == "ok"
 
 
 def test_manifest_missing_is_soft(tmp_path):
     chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
-    state, _, m = check_manifest(tmp_path, chunks, collection="c1")
+    state, _, m = check_manifest(tmp_path, chunks, collection="c1", embed_model="m")
     assert state == "missing"  # 旧索引:警告放行,不拒启
     assert m == {}
+
+
+# ---------- retriever 层索引校验(_validate_index) ----------
+
+
+def test_validate_index_mismatch_raises(tmp_path):
+    from app import retriever as R
+
+    chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
+    write_manifest(tmp_path, chunks, collection="c1", embed_model="m", chunk_count=1)
+    _write_chunks(chunks, ["changed"])
+    with pytest.raises(RuntimeError, match="索引版本校验失败"):
+        R._validate_index(tmp_path, chunks, collection="c1", embed_model="m")
+
+
+def test_validate_index_missing_warns_not_raises(tmp_path):
+    from app import retriever as R
+
+    chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
+    R._validate_index(tmp_path, chunks, collection="c1", embed_model="m")  # 无 manifest:不抛
+
+
+def test_validate_index_count_mismatch_raises(tmp_path, monkeypatch):
+    from app import retriever as R
+
+    chunks = _write_chunks(tmp_path / "chunks.jsonl", ["a"])
+    write_manifest(tmp_path, chunks, collection="c1", embed_model="m", chunk_count=1)
+    monkeypatch.setattr(R, "get_collection", lambda d, c: SimpleNamespace(count=lambda: 99))
+    with pytest.raises(RuntimeError, match="条数"):
+        R._validate_index(tmp_path, chunks, collection="c1", embed_model="m")
+    # check_count=False(parentchild 的父块路径)时只做文件级校验,不碰 chroma
+    monkeypatch.setattr(R, "get_collection", lambda d, c: (_ for _ in ()).throw(AssertionError("不应打开 chroma")))
+    R._validate_index(tmp_path, chunks, collection="c1", embed_model="m", check_count=False)
 
 
 # ---------- conftest 临时目录回落 ----------

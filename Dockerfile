@@ -2,6 +2,11 @@
 # 镜像含代码+Chroma 检索库+BM25 语料;bge-m3 模型首次启动时下载到 hf-cache 卷(hf-mirror)
 FROM python:3.13-slim
 
+# 镜像版本与 app/__init__.py 的 __version__ 保持同步(单一来源在后者,改版本两处同改)
+ARG APP_VERSION=0.2.0
+LABEL org.opencontainers.image.title="rag-qa" \
+      org.opencontainers.image.version=${APP_VERSION}
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/models \

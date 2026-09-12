@@ -2,12 +2,48 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 from pipeline.config import get_settings
 from pipeline.store import get_collection
 
 from .schemas import Hit
+
+# 沿用 uvicorn 的错误日志通道（服务端免配置可见）；Streamlit 侧落到 root 兜底输出
+logger = logging.getLogger("uvicorn.error")
+
+
+def _validate_index(
+    chroma_dir,
+    chunks_path,
+    *,
+    collection: str,
+    embed_model: str,
+    check_count: bool = True,
+    label: str = "",
+):
+    """manifest 绑定校验：chunks 哈希 / collection / 嵌入模型（可选条数）。
+
+    mismatch → RuntimeError 拒绝启动（在加载嵌入模型之前，秒级失败）；
+    missing（旧索引无 manifest）→ 警告放行。
+    """
+    from pipeline.manifest import check_manifest
+
+    tag = label or collection
+    state, msg, m = check_manifest(chroma_dir, chunks_path, collection=collection, embed_model=embed_model)
+    if state == "mismatch":
+        raise RuntimeError(f"索引版本校验失败[{tag}]：{msg}")
+    if state == "missing":
+        logger.warning("索引校验跳过[%s]：%s", tag, msg)
+        return
+    if check_count:
+        actual = get_collection(chroma_dir, collection).count()
+        if actual != m.get("chunk_count"):
+            raise RuntimeError(
+                f"索引版本校验失败[{tag}]：Chroma 条数 {actual} 与 manifest {m.get('chunk_count')} 不一致"
+            )
+    logger.info("索引校验通过[%s]：%s（embed=%s）", tag, msg, embed_model)
 
 
 class VectorRetriever:
@@ -59,6 +95,20 @@ def get_retriever() -> VectorRetriever:
     from pipeline.config import get_settings
 
     s = get_settings()
+    if s.retriever == "parentchild":
+        # 按实际使用的索引校验：子块向量库严格校验（真正被查询的 collection）；
+        # 父块只读 jsonl，主 collection 此模式不查询，免条数比对
+        _validate_index(
+            s.chroma_dir, s.chunks_dir / "chunks_pc.jsonl",
+            collection="fastapi_zh_pc", embed_model=s.embed_model, label="parentchild/child",
+        )
+        _validate_index(
+            s.chroma_dir, s.chunks_path, collection=s.collection,
+            embed_model=s.embed_model, check_count=False, label="parentchild/parent",
+        )
+    else:
+        _validate_index(s.chroma_dir, s.chunks_path, collection=s.collection, embed_model=s.embed_model)
+
     base = VectorRetriever.from_settings()
     if s.retriever == "vector":
         return base

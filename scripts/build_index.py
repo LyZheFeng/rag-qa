@@ -122,8 +122,9 @@ def main() -> None:
     n = upsert_chunks(col, chunks, embeddings)
     print(f"  upsert {n} 条，库内共 {col.count()} 条 → {settings.chroma_dir}")
 
-    # 主线构建才写 manifest（实验 tag/自定义 collection 不碰，防污染主索引绑定关系）
-    if jsonl_path == settings.chunks_path and args.collection == settings.collection:
+    # manifest 按 collection 分文件,任何完整构建都写(实验 collection 绑自己的 jsonl,互不干扰);
+    # 唯一例外是 --limit 冒烟:半量 jsonl 不能覆盖正主的绑定关系
+    if not args.limit:
         from pipeline.manifest import write_manifest
 
         mp = write_manifest(

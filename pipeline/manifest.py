@@ -1,8 +1,9 @@
 """索引 manifest：构建侧写入，服务侧启动校验。
 
-绑定三件事的同一次构建：Chroma collection、chunks.jsonl、嵌入模型。
-语料/切块更新但只重建了其中一个索引时（BM25 读 jsonl、向量读 Chroma），
-哈希/条数对不上即启动失败，防隐蔽的版本错配。
+每个 collection 一份 manifest（manifest.{collection}.json），绑定同一次构建的
+四件事：Chroma collection、chunks jsonl、嵌入模型、条数。语料/切块/模型更新但
+只重建了其中一个索引时（BM25 读 jsonl、向量读 Chroma），哈希/模型/条数对不上
+即拒绝启动，防隐蔽的版本错配。
 """
 
 from __future__ import annotations
@@ -12,10 +13,12 @@ import json
 import time
 from pathlib import Path
 
-MANIFEST_NAME = "manifest.json"
-
 # 校验状态：ok=一致 / missing=无 manifest（旧索引，警告放行）/ mismatch=版本错配（拒绝启动）
 ManifestState = str
+
+
+def manifest_path(chroma_dir: Path, collection: str) -> Path:
+    return chroma_dir / f"manifest.{collection}.json"
 
 
 def _sha256(path: Path) -> str:
@@ -42,17 +45,19 @@ def write_manifest(
         "embed_model": embed_model,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
-    path = chroma_dir / MANIFEST_NAME
+    path = manifest_path(chroma_dir, collection)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 
-def check_manifest(chroma_dir: Path, chunks_path: Path, *, collection: str) -> tuple[ManifestState, str, dict]:
+def check_manifest(
+    chroma_dir: Path, chunks_path: Path, *, collection: str, embed_model: str
+) -> tuple[ManifestState, str, dict]:
     """文件级校验（不打开 Chroma）。返回 (状态, 人读说明, manifest 原文)。
 
     条数比对由调用方拿着 manifest["chunk_count"] 对 collection.count() 做。
     """
-    path = chroma_dir / MANIFEST_NAME
+    path = manifest_path(chroma_dir, collection)
     if not path.exists():
         return "missing", f"索引 manifest 不存在（{path}），旧索引建议重跑 build_index 生成", {}
     try:
@@ -62,7 +67,14 @@ def check_manifest(chroma_dir: Path, chunks_path: Path, *, collection: str) -> t
     if manifest.get("collection") != collection:
         return (
             "mismatch",
-            f"manifest 记录 collection={manifest.get('collection')!r}，与配置 {collection!r} 不一致",
+            f"manifest 记录 collection={manifest.get('collection')!r}，与实际 {collection!r} 不一致",
+            manifest,
+        )
+    if manifest.get("embed_model") != embed_model:
+        return (
+            "mismatch",
+            f"manifest 记录 embed_model={manifest.get('embed_model')!r}，当前 {embed_model!r}"
+            "（更换嵌入模型必须重建索引，向量不可混用）",
             manifest,
         )
     if not chunks_path.exists():

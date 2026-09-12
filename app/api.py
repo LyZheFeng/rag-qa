@@ -43,22 +43,12 @@ def _vector_core(svc: RagService):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from pipeline.config import get_settings
-    from pipeline.manifest import check_manifest
 
-    s = get_settings()
-    state, msg, manifest = check_manifest(s.chroma_dir, s.chunks_path, collection=s.collection)
-    if state == "mismatch":
-        raise RuntimeError(f"索引版本校验失败：{msg}")  # 启动即失败，不放行错配索引
-    if state == "missing":
-        logger.warning("索引校验跳过：%s", msg)
-
-    service = get_service()  # 启动即预热嵌入模型，首问不付 2.4s
+    # get_service → get_retriever 内做索引 manifest 校验(错配在嵌入模型加载前 fail-fast)
+    service = get_service()
     app.state.service = service
+    s = get_settings()
     core = _vector_core(service)
-    if state == "ok" and core is not None and s.retriever != "parentchild":
-        actual, expected = core.collection.count(), manifest.get("chunk_count")
-        if actual != expected:
-            raise RuntimeError(f"索引版本校验失败：Chroma 条数 {actual} 与 manifest {expected} 不一致")
     if core is not None:
         logger.info(
             "rag-qa v%s 就绪 | retriever=%s | embed=%s (%s, dim=%s) | collection=%s | chunks=%s | llm=%s",
@@ -111,7 +101,8 @@ async def ready(request: Request) -> dict:
     client = getattr(svc.generator, "client", None)
     if client is not None:
         try:
-            client.with_options(timeout=LLM_PING_TIMEOUT).models.list()
+            # 探活也放线程池:同步 client 超时会阻塞事件循环
+            await run_in_threadpool(lambda: client.with_options(timeout=LLM_PING_TIMEOUT).models.list())
             llm_ready = True
         except Exception as e:  # 细节只进服务端日志
             logger.warning("ready 检查：LLM 不通 %s: %s", type(e).__name__, e)

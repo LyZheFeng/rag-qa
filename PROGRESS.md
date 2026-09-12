@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:外部评审两轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`
+## 状态:外部评审三轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`
 
 ## 外部评审接力入口(2026-09-12)
 
@@ -17,6 +17,10 @@
   /ready(vector/llm 就绪分离)、版本单一来源(app.__version__=0.2.0)、/ask 线程池化+
   Semaphore(4)、索引 manifest 构建写入+启动校验(错配 fail-fast,存量已回填 1701);
   明细见 codex-review 二次评审一节
+- **三次评审 5 项已全部处理(2026-09-12,单测 69→74)**:探针加严为完整动作面(建/写/枚举/删)、
+  manifest 增嵌入模型绑定(换模型不重建即拒启)、manifest 按 collection 分文件并下沉 get_retriever
+  按模式路由(parentchild 校验 pc 库,实测通过)、/ready 探活线程池化、Dockerfile LABEL 版本对齐;
+  三模式冒烟:hybrid 全链路 ✓ / parentchild 双路校验 ✓ / 换模型与篡改 pc manifest 均 fail-fast ✓
 - 定位:从实验型项目收口为可稳定部署、可持续回归的服务(P0 半天/P1 1~2 天)
 - 明确不做:rerank/rewrite 进主线(保持实验开关)
 

@@ -68,6 +68,22 @@
    发生在模型加载前);存量索引已回填 manifest(1701 chunks,自检 ok),旧索引无 manifest
    时警告放行不拒启。
 
+### 三次评审 5 项 → ✅ 已处理(2026-09-12,全库 74 单测过 + 三模式真机冒烟)
+
+1. **默认 pytest 仍不稳** ✅(按第二建议):conftest 探针从"只建删文件"加严为完整动作面
+   (建子目录→写文件→scandir 枚举→删文件→删子目录),"可建不可枚举"的受限沙箱不再误判。
+   未采纳"ini 硬编 basetemp":本机实测 repo 内 basetemp 会被系统锁死导致后续全挂(见二次评审 #1)。
+2. **manifest 未校验嵌入模型** ✅:check_manifest 增参 embed_model,不一致 → mismatch 拒启
+   (实测换 EMBED_MODEL 启动即拒,提示"向量不可混用")。
+3. **parentchild 索引绑定错位** ✅:manifest 改为**按 collection 分文件**(manifest.{collection}.json),
+   校验下沉到 get_retriever 并按模式路由——parentchild 严格校验 fastapi_zh_pc+chunks_pc.jsonl(实测通过),
+   父块仅文件级校验主库(免条数比对,该模式不查询主 collection);其余模式校验主库。
+   build_index 守卫随之简化(任何完整构建都写自己的 manifest,只挡 --limit 冒烟)。
+   UI/API 两个入口都经 get_retriever,校验全覆盖;存量已回填主库+pc 库两份。
+4. **/ready 同步探活阻塞事件循环** ✅:探活改 `run_in_threadpool` 包裹,3s 超时不再卡 loop。
+5. **版本来源** ✅:单一来源仍是 `app/__init__.py::__version__`(0.2.0);Dockerfile 补
+   ARG/LABEL org.opencontainers.image.version 并注释与 __version__ 同步;compose 保持 :latest 不掺和。
+
 ### P1 工程加固 —— 1~4/6 已被二次评审处理吸收,仅剩:
 
 - extract_json:长度上限 + schema 白名单字段
