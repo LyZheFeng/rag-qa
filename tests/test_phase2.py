@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app import __version__
 from app.api import app
 from app.generator import LLMGenerator, build_context, extract_json, validate_citations
 from app.schemas import AnswerSpec, AskResponse, Hit
@@ -165,15 +166,35 @@ class FakeRetriever:
 
 
 class FakeGenerator:
-    def __init__(self, spec: AnswerSpec, parse_mode: str = "json"):
+    def __init__(self, spec: AnswerSpec, parse_mode: str = "json", client=None):
         self._spec = spec
         self.parse_mode = parse_mode
         self.model = "fake-model"
+        self.client = client  # /ready 的 LLM 探活走 generator.client
         self.calls = []
 
     def generate(self, question, hits):
         self.calls.append((question, len(hits)))
         return SimpleNamespace(spec=self._spec, parse_mode=self.parse_mode, raw="raw")
+
+
+class FakeLLMClient:
+    """openai 客户端替身:with_options().models.list() 按构造参数成败。"""
+
+    def __init__(self, ok: bool = True):
+        self.ok = ok
+
+    def with_options(self, **kw):
+        return self
+
+    @property
+    def models(self):
+        return self
+
+    def list(self):
+        if not self.ok:
+            raise RuntimeError("connection refused")
+        return []
 
 
 def test_service_ask_enriches_citations():
@@ -211,6 +232,53 @@ def test_api_ask_with_fake_service():
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json()["chunks"] == 1701
+    assert r.json()["version"] == __version__
+
+
+def test_api_ready_llm_up_and_down():
+    from app.api import app as _app
+
+    h1 = hit(1)
+    ok_svc = RagService(FakeRetriever([h1]), FakeGenerator(AnswerSpec(answer="x"), client=FakeLLMClient(ok=True)))
+    _app.state.service = ok_svc
+    client = TestClient(_app)
+    r = client.get("/ready")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ready", "vector_ready": True, "llm_ready": True}
+
+    down_svc = RagService(FakeRetriever([h1]), FakeGenerator(AnswerSpec(answer="x"), client=FakeLLMClient(ok=False)))
+    _app.state.service = down_svc
+    r = client.get("/ready")
+    assert r.status_code == 503
+    body = r.json()["detail"]
+    assert body["llm_ready"] is False
+    assert body["vector_ready"] is True  # 向量侧不受 LLM 断连影响
+
+
+def test_api_ready_no_llm_client_marks_not_ready():
+    # generator 没挂 client(如异常构造)时,/ready 不炸,按未就绪处理
+    app.state.service = RagService(FakeRetriever([hit(1)]), FakeGenerator(AnswerSpec(answer="x")))
+    r = TestClient(app).get("/ready")
+    assert r.status_code == 503
+    assert r.json()["detail"]["llm_ready"] is False
+
+
+def test_api_ask_rejected_when_saturated():
+    from app.api import MAX_CONCURRENT_ASKS, _ask_semaphore
+
+    app.state.service = RagService(FakeRetriever([hit(1)]), FakeGenerator(AnswerSpec(answer="x")))
+    client = TestClient(app)
+    acquired = []
+    try:
+        for _ in range(MAX_CONCURRENT_ASKS):
+            _ask_semaphore.acquire(blocking=False)
+            acquired.append(True)
+        r = client.post("/ask", json={"question": "并发打满时"})
+        assert r.status_code == 503
+        assert r.json()["detail"] == "服务繁忙，请稍后重试"
+    finally:
+        for _ in acquired:
+            _ask_semaphore.release()
 
 
 def test_api_ask_validation_error():

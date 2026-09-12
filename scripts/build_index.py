@@ -121,6 +121,16 @@ def main() -> None:
     col = get_collection(settings.chroma_dir, args.collection)
     n = upsert_chunks(col, chunks, embeddings)
     print(f"  upsert {n} 条，库内共 {col.count()} 条 → {settings.chroma_dir}")
+
+    # 主线构建才写 manifest（实验 tag/自定义 collection 不碰，防污染主索引绑定关系）
+    if jsonl_path == settings.chunks_path and args.collection == settings.collection:
+        from pipeline.manifest import write_manifest
+
+        mp = write_manifest(
+            settings.chroma_dir, jsonl_path,
+            collection=args.collection, embed_model=settings.embed_model, chunk_count=col.count(),
+        )
+        print(f"  manifest → {mp}")
     print(f"完成，耗时 {time.time() - t0:.1f}s")
 
 

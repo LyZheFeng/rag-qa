@@ -48,15 +48,28 @@
    评估基线数字不受影响(v0.2 全量 run 中 parse_mode=fallback 占比 0,见 eval/runs)。
 4. **API 错误脱敏**:服务端 log 完整异常,客户端只回 `{"detail": "生成服务暂时不可用"}` + 追踪 id。
 
-### P1 工程加固(1~2 天)
+### 二次评审 6 项 → ✅ 已处理(2026-09-12,全库 69 单测过 + 真机冒烟)
 
-- Settings 校验:`retriever` 用 Literal 枚举,`hybrid_candidates`/`rrf_k` 加范围(gt/le),
-  非法配置启动即失败
-- /health 增强:LLM 连通性(轻量 ping)、索引 chunk 数、模型维度、retriever 类型
-- RagService.ask 同步阻塞:FastAPI 侧改 `run_in_threadpool`(快)或异步客户端(重);
-  加请求超时与简单并发信号量
-- 索引版本管理:chunks.jsonl 与 Chroma collection 显式版本号(如 fastapi_zh_v2),
-  BM25 文件与 collection 校验同源,防错配
+1. **默认 pytest 命令** ✅(方案调整):未照建议把 basetemp 硬编进 pytest.ini——本机实测
+   repo 内 basetemp 会在启动清理阶段被系统拒绝访问(残留目录甚至无法删除),后续运行全挂;
+   改为根 `conftest.py` 启动探测:系统临时目录不可写(评审沙箱的场景)才回落 `.pytest_tmp`,
+   可写则保持 pytest 原生行为。两种环境裸 `pytest` 均绿。
+2. **配置约束** ✅:`retriever` 改 Literal 五枚举,`hybrid_candidates` Field(ge=API_MAX_K=10)
+   (候选深度小于 API k 上限会融合不足 k 条),`rrf_k` ge=1;非法配置启动即 ValidationError。
+3. **readiness** ✅:新增 `GET /ready`——vector_ready(库有数据)+ llm_ready(3s 轻量 ping),
+   任一不就绪 503;/health 保持便宜(不碰 LLM)作存活探针,二者分工写进 api.py 模块注释。
+4. **版本单一来源** ✅:`app/__init__.py` 定 `__version__="0.2.0"`,FastAPI(version=) 与
+   /health 均引用,启动横幅也带版本号。
+5. **同步阻塞** ✅:/ask 改 async + `run_in_threadpool`(embedding+LLM 不再占事件循环),
+   `Semaphore(4)` 并发上限,打满返回 503"服务繁忙";单测覆盖饱和路径。
+6. **索引 manifest** ✅:新增 `pipeline/manifest.py`——build_index 主线构建写入
+   (chunks.jsonl sha256 / 条数 / collection / 嵌入模型,实验 tag/collection 不写防污染);
+   启动时校验哈希+collection+Chroma 条数,错配 **fail-fast**(实测篡改哈希后启动即拒,
+   发生在模型加载前);存量索引已回填 manifest(1701 chunks,自检 ok),旧索引无 manifest
+   时警告放行不拒启。
+
+### P1 工程加固 —— 1~4/6 已被二次评审处理吸收,仅剩:
+
 - extract_json:长度上限 + schema 白名单字段
 
 ### P2 评估增强(可选,部署前后均可)
