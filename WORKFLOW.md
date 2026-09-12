@@ -1,6 +1,9 @@
 # rag-qa 工作流程（跨会话执行依据）
 
 > 新会话开工：读本文件 + `PROGRESS.md` + 仓库根上级的 `agent-internship-plan.md` / `project1-kickoff.md` 即可接力。
+>
+> **状态（2026-09-12）**：Phase 0~5 已全部收官；Phase 6 按"本地运行"定位收口（部署/frp/公网验收取消）。
+> 本文件自此转为**历史存档**，现行状态与决策一律以 `PROGRESS.md` 为准。
 
 ## 全局约定
 
@@ -9,7 +12,7 @@
 - 全程 UTF-8：中文请求走 Python（`sys.stdout.reconfigure(encoding='utf-8')`），不用 Git Bash curl 发中文
 - 评估纪律：temperature=0；迭代用 `--limit 50` 子集；**进 README 的数字必须全量真实跑出**，脚本与原始输出留档于 `eval/runs/`
 - 模型环境：生成走内网 vLLM（见 `.env`）；嵌入/重排本地 bge（HF_HOME=D 盘缓存，HF_ENDPOINT=hf-mirror）
-- 用户介入点：A 认可 chunk 样例 → B 体验基线演示 → C 审 200 题测试集 → D 提供学生机/frp 信息
+- 用户介入点：A 认可 chunk 样例 → B 体验基线演示 → C 审 200 题测试集 → D 提供学生机/frp 信息（D 已随部署取消，2026-09-12）
 
 ## 阶段
 
@@ -22,7 +25,7 @@ md loader → 统一中间格式（正文+标题链+段落号）→ 清洗 → c
 验证：抽 10 chunk 对照原文；统计 token 分布。**介入点 A**。产出：`data/chroma/` + 管道 CLI。
 
 ### Phase 2 · 基线链路
-向量 top-5 → 编号上下文 → 生成（pydantic：answer/citations/refused，解析失败重试 1 次降级纯文本）→ FastAPI `POST /ask` → Streamlit。
+向量 top-5 → 编号上下文 → 生成（pydantic：answer/citations/refused，解析失败重试 1 次，再失败安全拒答——原"降级纯文本"已于 2026-09-12 P0 改掉）→ FastAPI `POST /ask` → Streamlit。
 验证：5 个手工问题端到端 + 延迟。**介入点 B**。tag `v0.1-baseline`。
 
 ### Phase 3 · 评估体系
@@ -36,8 +39,11 @@ v0.2-hybrid（BM25 中文 bigram + RRF）→ v0.3-rerank（粗 20 精排 5）→
 ### Phase 5 · 溯源与拒答完善
 引用卡片展开原文；拒答阈值校准（无法回答型正确拒答 ≥90%、可答题误拒 ≤10%），校准曲线留档。
 
-### Phase 6 · 部署 + 文档
-Docker 化（**介入点 D**：学生机+frp）→ 公网链接 → README 终稿（架构图/评估表/运行说明/踩坑 Top 3）→ 公网验收。
+### Phase 6 · 部署 + 文档（实际走向：本地运行）
+原计划：Docker 化（介入点 D：学生机+frp）→ 公网链接 → README 终稿 → 公网验收。
+实际：Docker 备战完成并本机全链路验证后部署延后；2026-09-12 用户拍板"本地能跑就行"，
+部署/frp/公网验收/仓库转公开取消，Docker 产物已回收（Dockerfile/compose 留档）；
+README 终稿改为本地运行流程，项目按本地运行定位收口。
 
 ## 红线
 

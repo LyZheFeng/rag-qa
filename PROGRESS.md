@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:外部评审 P0 已收口(2026-09-12)✅ → 定位转为本地运行(用户拍板,部署/frp/转公开取消)→ 下一步 P1 工程加固,从 `notes/codex-review-2026-09-12.md` 接力
+## 状态:外部评审 P0 已收口(2026-09-12)✅ → 定位转为本地运行(用户拍板,部署/frp/转公开取消)→ 主线收口;剩余 P1/P2 为可选项按需做,清单见 `notes/codex-review-2026-09-12.md`
 
 ## 外部评审接力入口(2026-09-12)
 
@@ -19,8 +19,8 @@
 
 | 项 | 决定 |
 |---|---|
-| 语料 | FastAPI 官方中文文档（GitHub docs/zh/docs，约 150 篇 md） |
-| 仓库 | 独立仓库 LyZheFeng/rag-qa（私有，终稿后转公开） |
+| 语料 | FastAPI 官方中文文档（GitHub docs/zh/docs；决策时估约 150 篇，实际清洗后入库 122 篇） |
+| 仓库 | 独立仓库 LyZheFeng/rag-qa（保持私有；原"终稿后转公开"已随部署取消，2026-09-12） |
 | 生成模型 | 内网 vLLM `http://10.14.6.55:30561/v1`，`Qwen3.8-27B`，key=1234，`enable_thinking:false`，已验证可用 |
 | 嵌入/重排 | 本地 bge-m3 + bge-reranker-v2-m3（HF_HOME=D 盘，hf-mirror 下载；reranker Phase 4 前再下） |
 | 部署 | **本地运行即可**(2026-09-12 用户拍板,原"学生机 Docker + frp"取消;Docker 文件留档备用) |
@@ -61,7 +61,7 @@
 ## Phase 2 清单（基线链路）
 
 - [x] `app/` 包：schemas（pydantic 契约）/ retriever（bge-m3 + Chroma top-k）/ generator / service（编排+延迟）/ api（FastAPI）/ ui（Streamlit chat）
-- [x] 生成契约：`{answer, citations, refused}` 严格 JSON；剥围栏/`</think>` 后取首 `{` 末 `}`；解析失败重试 1 次（带纠正提示），再失败降级纯文本；`parse_mode` 记录 json/retry/fallback
+- [x] 生成契约：`{answer, citations, refused}` 严格 JSON；剥围栏/`</think>` 后取首 `{` 末 `}`；解析失败重试 1 次（带纠正提示），再失败降级纯文本（2026-09-12 起 P0 改为安全拒答）；`parse_mode` 记录 json/retry/fallback
 - [x] 引用与拒答：citations 在 pydantic **之前**于原始 dict 上清洗（去越界/去重/排序，refused 强制清空）；服务层富化为完整 chunk 信息（cited 字段）
 - [x] FastAPI：`POST /ask`（k 可调 1~10）、`GET /health`，lifespan 预热嵌入模型（首问检索不付加载耗时），LLM 断连统一 502
 - [x] Streamlit：chat 界面 + 引用卡片展开 chunk 原文 + 相似度/延迟/parse_mode 标注，`st.cache_resource` 单例
@@ -137,6 +137,6 @@
 ## 环境备忘
 
 - Python 3.13.9（D:\python），venv 在 `.venv/`
-- D 盘剩 ~680GB，无空间压力；HF/pip 缓存全部指向 D 盘
+- D 盘剩 ~672GB（2026-09-11 Docker 产物回收后 671.9GB），无空间压力；HF/pip 缓存全部指向 D 盘
 - Git Bash 中文坑：curl 中文乱码 → 一律 Python + UTF-8
 - GitHub https 偶发重置：失败重试
