@@ -1,7 +1,7 @@
 """生成：编号上下文 → vLLM Qwen → 严格 JSON（answer/citations/refused）。
 
-解析策略：失败重试 1 次（附纠正提示），再失败降级纯文本（answer=原文，
-citations=[]，refused=False），parse_mode 记录走了哪条路。
+解析策略：失败重试 1 次（附纠正提示），再失败安全拒答（refused=true，
+answer=固定提示语，citations 为空），parse_mode 记录走了哪条路。
 """
 
 from __future__ import annotations
@@ -136,5 +136,9 @@ class LLMGenerator:
         if spec is not None:
             return GenerationOutcome(spec, "retry", raw)
 
-        # 降级纯文本：答案照用，引用置空（Phase 2 基线策略）
-        return GenerationOutcome(AnswerSpec(answer=raw2.strip(), citations=[], refused=False), "fallback", raw)
+        # 两次解析失败：原文可能夹带围栏/思维链/解释文字，不可信，安全拒答而非照用
+        return GenerationOutcome(
+            AnswerSpec(answer="生成结果格式异常，无法给出可靠回答，请重试。", citations=[], refused=True),
+            "fallback",
+            raw,
+        )

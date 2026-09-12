@@ -16,7 +16,19 @@
 
 ## 执行清单(按评审优先级,核实后确认可行)
 
-### P0 修复(半天)
+### P0 修复(半天)—— ✅ 已完成(2026-09-12,全库 55 单测过 + 真机冒烟)
+
+1. **pytest 隔离** ✅:`pytest.ini`(testpaths=tests / norecursedirs / -p no:cacheprovider)落地,
+   裸 `pytest` 从 1324 外来测试 + 323 收集错误 → 干净收集 55 条全过;`--basetemp=.pytest_tmp`
+   验证可用,.gitignore 已补 `.pytest_cache/`+`.pytest_tmp/`(CI 接入时统一带 basetemp)。
+2. **统一 hybrid 默认** ✅:config.py 默认 `retriever="hybrid"`、.env.example 同步;
+   lifespan 启动日志一行摘要(实测:`retriever=HybridRetriever | embed=BAAI/bge-m3 (BgeM3Embedder, dim=1024)
+   | collection=fastapi_zh_v1 | chunks=1701 | llm=Qwen3.8-27B`);/health 下钻逻辑抽为 `_vector_core` 复用。
+   核实过:tests/ 无任何用例依赖 vector 默认(全用 fake),无需改。
+3. **fallback 改安全拒答** ✅:两次解析失败 → `refused=True` + 固定提示语"生成结果格式异常,无法给出可靠回答,请重试。",
+   parse_mode 仍记 fallback;核实 v0.2-hybrid 定版全量 run parse_mode=fallback 占比 0(200/200 json),基线数字不受影响。
+4. **API 错误脱敏** ✅:502 detail 只回 `{"message": "生成服务暂时不可用", "trace_id": <12位>}`,
+   完整异常(traceback)走服务端 `uvicorn.error` 日志,凭 trace_id 可回查;新增单测断言响应不含异常类型/内网细节。
 
 1. **pytest 隔离**:加 `pytest.ini`:
    ```ini

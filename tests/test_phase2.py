@@ -127,13 +127,15 @@ def test_generator_retry_success():
     assert client.calls[1]["messages"][-1]["role"] == "user"
 
 
-def test_generator_fallback_plain_text():
+def test_generator_fallback_safe_refusal():
+    """两次解析失败 → 安全拒答：不再把原文当答案（可能夹带围栏/思维链）。"""
     gen, client = make_gen(["纯文本回答一", "纯文本回答二"])
     out = gen.generate("如何声明请求体", [hit(1), hit(2)])
     assert out.parse_mode == "fallback"
-    assert out.spec.answer == "纯文本回答二"
+    assert out.spec.refused is True
     assert out.spec.citations == []
-    assert out.spec.refused is False
+    assert "格式异常" in out.spec.answer
+    assert "纯文本回答二" not in out.spec.answer
 
 
 def test_generator_citation_sanitized():
@@ -216,3 +218,22 @@ def test_api_ask_validation_error():
     client = TestClient(app)
     assert client.post("/ask", json={"question": ""}).status_code == 422
     assert client.post("/ask", json={"question": "q", "k": 99}).status_code == 422
+
+
+def test_api_ask_error_sanitized():
+    """下游异常 → 502 脱敏：客户端只见固定文案+追踪 id，不见异常细节。"""
+
+    class BoomService:
+        retriever = FakeRetriever([])
+
+        def ask(self, question, k=5):
+            raise RuntimeError("内网 vLLM 连接被拒绝: http://10.14.6.55:30561 secret-detail")
+
+    app.state.service = BoomService()
+    client = TestClient(app)
+    r = client.post("/ask", json={"question": "任何问题"})
+    assert r.status_code == 502
+    body = r.json()["detail"]
+    assert body["message"] == "生成服务暂时不可用"
+    assert body["trace_id"]  # 有追踪 id 可回查服务端日志
+    assert "RuntimeError" not in r.text and "secret-detail" not in r.text

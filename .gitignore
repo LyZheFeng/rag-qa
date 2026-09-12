@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 venv/
 
+# pytest 临时产物（--basetemp=.pytest_tmp 应对受限环境的系统临时目录权限）
+.pytest_cache/
+.pytest_tmp/
+
 # 环境与密钥
 .env
 
