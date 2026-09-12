@@ -22,7 +22,7 @@ LLM 依据资料作答并逐句标注引用,资料不足时诚实拒答而非编
            ▼
 ┌─ 生成(Qwen3.8-27B,内网 vLLM)──────────────────┐
 │  编号上下文 → 严格 JSON {answer, citations,      │
-│  refused};解析失败重试 1 次 → 降级纯文本         │
+│  refused};解析失败重试 1 次 → 安全拒答           │
 └──────────┬────────────────────────────────────┘
            ▼
   回答 + 引用卡片(可展开 chunk 原文) 或 拒答说明
@@ -34,21 +34,31 @@ LLM 依据资料作答并逐句标注引用,资料不足时诚实拒答而非编
   recall@5 双口径 / MRR / judge 正确性 / faithfulness 拆 claim / 拒答率分口径统计,
   另设"无检索直接问答"对照列证明 RAG 增益
 
-## 快速开始
+## 快速开始(本地运行)
 
 ```bash
-cp .env.example .env          # 填 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL
-docker compose up -d          # 首次启动自动下载 bge-m3(~4.3GB,走 hf-mirror)
-# UI:  http://localhost:8501    API: http://localhost:8000/docs
-```
-
-本机裸跑(无需 Docker):
-
-```bash
+# 1) 环境(Python 3.13)
+python -m venv .venv
+.venv\Scripts\activate           # Windows;Linux/macOS 为 source .venv/bin/activate
 pip install -r requirements.txt
-python -m uvicorn app.api:app --port 8000    # API
-streamlit run app/ui.py                      # 界面
+
+# 2) 配置:LLM 指向内网 vLLM;模型缓存指到本机有空间的盘
+cp .env.example .env             # 填 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL,并把 HF_HOME 改成本机实际路径
+
+# 3) 模型与索引(仅首次;data/chroma/ 不入库,新环境要重建)
+python scripts/download_models.py --embed   # bge-m3 ~2.1GB,走 hf-mirror
+python scripts/build_index.py               # 122 篇 md → 1701 chunk → Chroma(CPU 约 6min)
+
+# 4) 起服务
+python -m uvicorn app.api:app --port 8000   # API:http://localhost:8000/docs
+streamlit run app/ui.py                     # UI :http://localhost:8501
 ```
+
+说明:生成依赖内网 vLLM,需能访问 `10.14.6.55`;检索/嵌入完全本地——LLM 不通时
+/health 仍正常,/ask 返回 502(客户端只见脱敏文案+追踪 id,细节在服务端日志)。
+单测:`pytest`(55 个,全部离线)。
+
+Docker 部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
 
 ## 版本演进与评估(200 题全量真实跑批)
 
@@ -94,7 +104,7 @@ app/        检索(hybrid/rerank/rewrite/parentchild 开关)· 生成 · 编排 
 pipeline/   语料加载 / 清洗 / 切块 / 嵌入 / 入库
 eval/       出题 · 预筛 · 跑批 · 指标 · 校准 + results.md / calibration.md
 data/       语料 / chunk / Chroma / 评估产物(模型缓存不入库)
-tests/      54 个单测(全部离线)
+tests/      55 个单测(全部离线)
 ```
 
 ## 运行版本开关(.env)

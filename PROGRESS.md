@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:Phase 6 备战完成 ✅ → 部署延后约 1 个月 → 外部评审 P0 已收口(2026-09-12)→ 下一步 P1 工程加固,从 `notes/codex-review-2026-09-12.md` 接力
+## 状态:外部评审 P0 已收口(2026-09-12)✅ → 定位转为本地运行(用户拍板,部署/frp/转公开取消)→ 下一步 P1 工程加固,从 `notes/codex-review-2026-09-12.md` 接力
 
 ## 外部评审接力入口(2026-09-12)
 
@@ -23,7 +23,7 @@
 | 仓库 | 独立仓库 LyZheFeng/rag-qa（私有，终稿后转公开） |
 | 生成模型 | 内网 vLLM `http://10.14.6.55:30561/v1`，`Qwen3.8-27B`，key=1234，`enable_thinking:false`，已验证可用 |
 | 嵌入/重排 | 本地 bge-m3 + bge-reranker-v2-m3（HF_HOME=D 盘，hf-mirror 下载；reranker Phase 4 前再下） |
-| 部署 | 学生机 Docker + frp 穿透（Phase 6，需能访问 10.14.6.55 内网） |
+| 部署 | **本地运行即可**(2026-09-12 用户拍板,原"学生机 Docker + frp"取消;Docker 文件留档备用) |
 | 测试集配比 | 事实 100 / 推理 60 / 无法回答 40，共 200 题 |
 
 ## Phase 0 清单
@@ -103,10 +103,9 @@
   本机 Docker 全链路验证通过(build → 首启自动下载 bge-m3 → hybrid 1701 chunks → /health OK →
   /ask 端到端 2.8s → UI 200)。途中修三个潜伏 bug:compose 注入宿主机 HF_HOME、
   embed.py 强制 HF_HUB_OFFLINE 挡首启下载、/health 写死 vector 检索器属性(v0.2 起潜伏)
-- [ ] Phase 6 部署(**延后约 1 个月**,等老师分配服务器;2026-09-11 已回收全部 Docker 产物,
-  D 盘恢复至 671.9GB:prune + vhdx 稀疏压缩 9.36→1.86GB + 注销 docker-desktop WSL 发行版并删 vhdx;
-  Docker Desktop 下月启动会自动重建引擎,重建流程已验证:Dockerfile/compose 在库,
-  服务器到位后 `docker compose up -d` 即可)→ frp 穿透 → 公网验收 → 仓库转公开
+- [x] Phase 6 部署 → **转为本地运行定位**(2026-09-12 用户拍板"本地能跑就行",frp/公网验收/转公开取消)。
+  2026-09-11 已回收全部 Docker 产物,D 盘恢复至 671.9GB(prune + vhdx 稀疏压缩 9.36→1.86GB +
+  注销 docker-desktop WSL 发行版并删 vhdx);Dockerfile/compose 留档在库,README 快速开始已改为本地裸跑流程
 
 ### Phase 3 关键发现
 
@@ -123,9 +122,11 @@
 
 ## 下一步
 
-**明日 v0.3-rerank**(代码已就绪,改 .env `RETRIEVER=rerank` 即跑):检索层验证(约 10min)→ 50 题快评(13min)→ 全量(40min)→ results.md + tag。
-之后 v0.4-rewrite → v0.5-chunking → Phase 5 拒答校准(v0.2 误拒 7.5% 已达 ≤10% 目标,重点保持)→ Phase 6 部署(介入点 D)。
-另有 30 条人机一致性抽样待用户抽空参与。
+主线已收口:v0.2-hybrid 定版 + 本地运行定位(2026-09-12)。剩余均为可选项,按需再做:
+
+- **P1 工程加固**(1~2 天,清单见 `notes/codex-review-2026-09-12.md`):Settings 枚举/范围校验、
+  /health 增强、ask 线程池化+超时、索引版本管理、extract_json 加固——本地单人使用收益有限,优先级自定
+- **P2 评估增强**(可选):指标拆分、200 题回归触发脚本
 
 ### 今日评估链路备忘
 
