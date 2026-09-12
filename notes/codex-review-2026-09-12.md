@@ -84,6 +84,21 @@
 5. **版本来源** ✅:单一来源仍是 `app/__init__.py::__version__`(0.2.0);Dockerfile 补
    ARG/LABEL org.opencontainers.image.version 并注释与 __version__ 同步;compose 保持 :latest 不掺和。
 
+### 四次评审(验证层单项)→ ✅ 已修(2026-09-12,75 单测全绿 + 回落链路忠实演练)
+
+- **默认 pytest 在受限环境仍挂**(scandir 被拒于 `Temp\pytest-of-...`):根因找到了——探针测的是
+  temp **根**,而实际失败点在 `pytest-of-<user>` **子树**(常由早前另一安全上下文创建,ACL 坏)。
+  修复:探针改为打在 pytest 原生默认根 `_pytest_default_root()`(temp/pytest-of-<user>)上,
+  完整动作面(建/写/枚举/删);"根可写但子树不可枚举"不再误判放行。
+- **回落目录轮转**:`.pytest_tmp → .pytest_tmp2 → .pytest_tmp3`,候选自身损坏(如被系统锁死)
+  自动顺延,不被毒害;全灭则交还原生行为让 pytest 报自己的错。
+- **验证**:本机忠实演练(把默认根硬指到文件路径=探测必败)下裸 `pytest` 75 全过、
+  正确回落项目内并越过锁死目录。仍无法在本机复现评审沙箱本体,若其环境再挂,
+  报错信息将指向首个连探针都过不去的动作,可进一步定位。
+- **为什么不采纳"ini 硬编 basetemp"**:本机(真实开发机)实测 pytest 在 repo 内建的 basetemp
+  会被系统锁死(现存 `.pytest_tmp` 无法删除),硬编后第二次运行起必挂——两边环境互补,
+  条件回落是唯一同时满足两边的方案。
+
 ### P1 工程加固 —— 1~4/6 已被二次评审处理吸收,仅剩:
 
 - extract_json:长度上限 + schema 白名单字段

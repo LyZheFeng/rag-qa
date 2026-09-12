@@ -2,7 +2,7 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:外部评审三轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`
+## 状态:外部评审四轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`
 
 ## 外部评审接力入口(2026-09-12)
 
@@ -21,6 +21,9 @@
   manifest 增嵌入模型绑定(换模型不重建即拒启)、manifest 按 collection 分文件并下沉 get_retriever
   按模式路由(parentchild 校验 pc 库,实测通过)、/ready 探活线程池化、Dockerfile LABEL 版本对齐;
   三模式冒烟:hybrid 全链路 ✓ / parentchild 双路校验 ✓ / 换模型与篡改 pc manifest 均 fail-fast ✓
+- **四次评审单项已修(2026-09-12,单测 74→75)**:temp 探针从"测根"改测 pytest 实际用的
+  `pytest-of-<user>` 子树(评审沙箱挂的真因),回落候选轮转(.pytest_tmp→2→3)防锁死目录毒害;
+  忠实演练(默认根硬指文件=探测必败)下裸 pytest 75 全绿并正确回落,详见 codex-review 四次评审一节
 - 定位:从实验型项目收口为可稳定部署、可持续回归的服务(P0 半天/P1 1~2 天)
 - 明确不做:rerank/rewrite 进主线(保持实验开关)
 

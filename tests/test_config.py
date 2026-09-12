@@ -140,20 +140,34 @@ def test_validate_index_count_mismatch_raises(tmp_path, monkeypatch):
 # ---------- conftest 临时目录回落 ----------
 
 
-def test_pick_basetemp_none_when_system_temp_writable(tmp_path, monkeypatch):
+def test_pick_basetemp_none_when_default_root_usable(tmp_path, monkeypatch):
     import conftest
 
-    monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
-    assert conftest._pick_basetemp() is None
+    monkeypatch.setattr(conftest, "_pytest_default_root", lambda: tmp_path / "pytest-of-u")
+    assert conftest._pick_basetemp() is None  # 原生子树可用 → 不干预
 
 
-def test_pick_basetemp_fallback_when_system_temp_unwritable(tmp_path, monkeypatch):
+def test_pick_basetemp_falls_back_when_default_root_unusable(tmp_path, monkeypatch):
     import conftest
 
-    ghost = tmp_path / "no-such-dir"
-    monkeypatch.setattr("tempfile.gettempdir", lambda: str(ghost))
-    picked = conftest._pick_basetemp()
-    assert picked is not None and picked.name == ".pytest_tmp"
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x", encoding="utf-8")
+    # 模拟"temp 下不可建/不可枚举":父路径是文件 → mkdir 必败
+    monkeypatch.setattr(conftest, "_pytest_default_root", lambda: blocker / "pytest-of-u")
+    monkeypatch.setattr(conftest, "REPO_ROOT", tmp_path)
+    assert conftest._pick_basetemp() == tmp_path / ".pytest_tmp"
+
+
+def test_pick_basetemp_rotates_past_poisoned_candidate(tmp_path, monkeypatch):
+    import conftest
+
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(conftest, "_pytest_default_root", lambda: blocker / "pytest-of-u")
+    monkeypatch.setattr(conftest, "REPO_ROOT", tmp_path)
+    # 模拟候选目录被锁死/占用(名字被文件占住 → mkdir 必败),应顺延下一个候选
+    (tmp_path / ".pytest_tmp").write_text("占位", encoding="utf-8")
+    assert conftest._pick_basetemp() == tmp_path / ".pytest_tmp2"
 
 
 def test_pytest_configure_sets_basetemp_only_on_fallback(tmp_path, monkeypatch):
@@ -173,8 +187,9 @@ def test_pytest_configure_sets_basetemp_only_on_fallback(tmp_path, monkeypatch):
     conftest.pytest_configure(cfg)
     assert cfg.option.basetemp == "explicit"
 
-    fallback_dir = tmp_path / "fb"  # 真实回落路径:应 mkdir 并写回 option
+    fallback_dir = tmp_path / "fb"
+    fallback_dir.mkdir()  # 真实 _pick_basetemp 返回前经 _probe_candidate 已建好目录,如实模拟
     monkeypatch.setattr(conftest, "_pick_basetemp", lambda: fallback_dir)
     cfg = FakeConfig()
     conftest.pytest_configure(cfg)
-    assert cfg.option.basetemp == str(fallback_dir) and fallback_dir.is_dir()
+    assert cfg.option.basetemp == str(fallback_dir)

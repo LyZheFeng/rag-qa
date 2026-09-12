@@ -56,7 +56,8 @@ streamlit run app/ui.py                     # UI :http://localhost:8501
 
 说明:生成依赖内网 vLLM,需能访问 `10.14.6.55`;检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
-细节在服务端日志)。单测:`pytest`(74 个,全部离线;系统临时目录受限的环境会自动回落到项目内)。
+细节在服务端日志)。单测:`pytest`(75 个,全部离线;系统临时目录的 `pytest-of-*` 子树不可用的
+受限环境会自动回落到项目内目录)。
 
 Docker 部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
 
