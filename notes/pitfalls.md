@@ -64,3 +64,9 @@ embed.py 设了 HF_HUB_OFFLINE=1 但没设 HF_HOME，直接 import 的脚本找�
 问题:原查询+3 变体平权 RRF,全量 recall@5 83.1%→74.4%,变体把热词 chunk 顶进 top-5
 尝试:原查询 4 倍加权 → 80.0%,缓解但不逆转;10 题探测显示 0.9(小样本严重漏判)
 结论:小样本探测只用于耗时判断,质量结论必须全量;多路融合必须考虑"谁有否决权"(原查询主导)
+
+## MCP server 化的编码判定(2026-09-14,项目 4 Day 24)
+
+问题:Inspector CLI 输出经 `2>&1` 合流后中文 JSON 出现 0xCB 坏字节,疑似协议层 UTF-8 被破坏
+尝试:分离 stdout/stderr 落文件后分别验字节——stdout 纯净 UTF-8("共 2 条"一字不差),坏字节全部来自 stderr 里 server 的 GBK 日志(Windows 控制台码页);纯 ASCII 参数同样复现,证明与中文参数无关
+结论:stdio MCP server 的协议通道(stdout)始终是 UTF-8,`2>&1` 合流才引入本地码页字节;验证编码永远分离流、验字节,不验肉眼(与 chatbi 仓同一条教训的第二次实锤)

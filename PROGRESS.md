@@ -2,6 +2,23 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
+## 状态:项目 4 Day 24 完成(2026-09-14,rag-qa 文档检索 MCP server + 双 server 演示 client,77 例全绿)→ 下一步见文末「项目 4 后续」
+
+## 项目 4 Day 24 完成情况(2026-09-14,MCP 化)
+
+- **`app/mcp_server.py`**(官方 SDK mcp 2.2.0,stdio):设计原则与 chatbi 一致——MCP 是传输协议不改工具语义,`search(query, top_k≤10)` 直接复用 `get_retriever()` 混合检索栈(manifest 校验保留);三类原语:tools(search,编号口径与 `build_context` 一致)+ resources(`rag-qa://corpus` 索引/语料统计,manifest 同源)+ prompts(`answer_with_citations` RAG 纪律模板);启动只读配置秒级,嵌入模型首次 search 才加载(~10s 一次);索引错配/top_k 越界转 isError+完整消息回传
+- **测试**:新增 `tests/test_mcp_server.py` 2 例(真实 stdio 子进程;索引缺席自动跳过),全量 77 例绿;3 组 query 经 MCP 与本地 `retriever.retrieve` 逐字一致
+- **Inspector**:CLI 实测(tools/call 中文 query 命中 background-tasks 正确文档、UTF-8 字节干净);配置 `scripts/mcp-inspector.json`;编码坑实录进 pitfalls(stdout 协议通道恒为 UTF-8,坏字节全来自 `2>&1` 合流的 GBK stderr)
+- **双 server 演示 client**(代码在 chatbi 仓 `scripts/mcp_client_demo.py`,依赖其 venv 的 mcp+openai):一次会话连 chatbi-db + rag-qa-docs,工具按 `server.工具` 命名空间路由,vLLM Qwen3.8-27B function calling 编排(temperature=0);内置 3 问实测:数据库题、文档题(带编号引用)、**混合题(同一循环里先 search 文档再 get_schema→execute_sql)**;答案与直连 SQL 核验一致(2014 top3 国家及金额、2013 Consumer 100 张订单)
+- requirements.txt 增 `mcp`;README 增「MCP 工具设计」节
+
+## 项目 4 后续(新会话)
+
+1. Day 25-26:统一 Landing 页(`D:\LLM_training\portfolio\`,不建仓库)+ 2 分钟 demo 录制(client demo 三问是底稿,自愈纠错那一刻用 chatbi 仓 `scripts/demo_ask.py` 或注错 SQL 场景);
+2. Day 27-28:简历段落 + 面试题(MCP 高频题素材已就位:两 server 三原语对比、命名空间路由、护栏/拒答纪律在 MCP 下的回传设计);
+3. 可选:双仓 README 交叉链接复核、rag-qa 补 requirements.lock(chatbi 有、本仓无)。
+
+---
 ## 状态:外部评审四轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`
 
 ## 外部评审接力入口(2026-09-12)

@@ -101,11 +101,40 @@ Docker 部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运�
 ## 目录
 
 ```
-app/        检索(hybrid/rerank/rewrite/parentchild 开关)· 生成 · 编排 · API · UI
+app/        检索(hybrid/rerank/rewrite/parentchild 开关)· 生成 · 编排 · API · UI · MCP server
 pipeline/   语料加载 / 清洗 / 切块 / 嵌入 / 入库
 eval/       出题 · 预筛 · 跑批 · 指标 · 校准 + results.md / calibration.md
 data/       语料 / chunk / Chroma / 评估产物(模型缓存不入库)
-tests/      55 个单测(全部离线)
+tests/      77 个单测(离线 75 + 真实索引 MCP 协议 2)
+```
+
+## MCP 工具设计(项目 4 Day 24,官方 SDK `mcp` 2.x,stdio transport)
+
+设计原则与 chatbi 的数据库查询 server 一致:**MCP 是工具的传输协议,不改工具的语义**。
+`app/mcp_server.py` 直接复用 `get_retriever()` 的混合检索栈(模式随 .env 的
+`RETRIEVER`,默认 hybrid,含 manifest 索引校验),RAG 生成(编号上下文、引用、
+拒答)留在客户端。
+
+| 原语 | 定义 | 谁来调用 | 为什么用它 |
+|---|---|---|---|
+| **tools** | `search(query, top_k≤10)` | 模型,带参数 | 编号 chunk 列表,编号口径与主链路 `build_context` 一致,客户端直接沿用引用纪律 |
+| **resources** | `rag-qa://corpus` | 客户端,按 URI 读 | 索引/语料统计(manifest 同源:检索模式、1701 chunks、122 篇文档清单),静态上下文不占工具轮次 |
+| **prompts** | `answer_with_citations(question)` | 用户主动触发 | "忠于检索内容、编号引用、不足即拒答"的 RAG 纪律模板,与主链路 SYSTEM_PROMPT 同源 |
+
+启动只读配置(秒级),嵌入模型/索引在首次 `search` 才加载(~10s,进程内只付一次)
+——Inspector 里 tools/list 即时可见。索引校验失败(manifest 错配)转 `isError=true`
++ 完整诊断消息回传;`top_k` 越界同样以 isError 报告参数边界。
+
+验证(`tests/test_mcp_server.py`,2 例,真实 stdio 子进程):三类原语发现与调用、
+参数边界、**3 组 query 经 MCP search 与本地 `retriever.retrieve` 逐字一致**;
+Inspector CLI 实测通过(中文 query 命中正确文档,UTF-8 字节干净)。
+演示见 chatbi 仓 `scripts/mcp_client_demo.py`:一次会话连两个 server
+(chatbi-db + rag-qa-docs),vLLM agent 按命名空间路由工具调用。
+
+```bash
+# 运行(stdio)与 Inspector 调试
+.venv/Scripts/python.exe -m app.mcp_server
+npx @modelcontextprotocol/inspector --cli --config scripts/mcp-inspector.json --server rag-qa-docs --method tools/call --tool-name search --tool-arg "query=后台任务怎么用" --tool-arg "top_k=2"
 ```
 
 ## 运行版本开关(.env)

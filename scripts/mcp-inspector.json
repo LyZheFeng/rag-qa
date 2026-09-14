@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "rag-qa-docs": {
+      "command": "D:\\LLM_training\\rag-qa\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "app.mcp_server"],
+      "cwd": "D:\\LLM_training\\rag-qa"
+    }
+  }
+}
