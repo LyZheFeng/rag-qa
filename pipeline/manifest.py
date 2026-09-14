@@ -17,6 +17,16 @@ from pathlib import Path
 ManifestState = str
 
 
+class IndexValidationError(RuntimeError):
+    """manifest 绑定校验失败（mismatch）。
+
+    消息是面向最终用户的诊断（哪个文件、什么不一致、怎么修），允许完整回传
+    客户端；区别于依赖库可能抛出的普通 RuntimeError——后者可能含内部路径/
+    配置/地址，边界层（如 MCP ToolError）应脱敏。继承 RuntimeError 以兼容
+    既有的捕获与测试断言。
+    """
+
+
 def manifest_path(chroma_dir: Path, collection: str) -> Path:
     return chroma_dir / f"manifest.{collection}.json"
 

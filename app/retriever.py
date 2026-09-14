@@ -25,22 +25,22 @@ def _validate_index(
 ):
     """manifest 绑定校验：chunks 哈希 / collection / 嵌入模型（可选条数）。
 
-    mismatch → RuntimeError 拒绝启动（在加载嵌入模型之前，秒级失败）；
-    missing（旧索引无 manifest）→ 警告放行。
+    mismatch → IndexValidationError（RuntimeError 子类）拒绝启动（在加载嵌入
+    模型之前，秒级失败）；missing（旧索引无 manifest）→ 警告放行。
     """
-    from pipeline.manifest import check_manifest
+    from pipeline.manifest import IndexValidationError, check_manifest
 
     tag = label or collection
     state, msg, m = check_manifest(chroma_dir, chunks_path, collection=collection, embed_model=embed_model)
     if state == "mismatch":
-        raise RuntimeError(f"索引版本校验失败[{tag}]：{msg}")
+        raise IndexValidationError(f"索引版本校验失败[{tag}]：{msg}")
     if state == "missing":
         logger.warning("索引校验跳过[%s]：%s", tag, msg)
         return
     if check_count:
         actual = get_collection(chroma_dir, collection).count()
         if actual != m.get("chunk_count"):
-            raise RuntimeError(
+            raise IndexValidationError(
                 f"索引版本校验失败[{tag}]：Chroma 条数 {actual} 与 manifest {m.get('chunk_count')} 不一致"
             )
     logger.info("索引校验通过[%s]：%s（embed=%s）", tag, msg, embed_model)

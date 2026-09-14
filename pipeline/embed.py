@@ -15,7 +15,11 @@ class BgeM3Embedder:
         from sentence_transformers import SentenceTransformer
 
         self.model = SentenceTransformer(model_name, device="cpu")
-        self.dim = self.model.get_sentence_embedding_dimension()
+        # 5.0 起改名 get_embedding_dimension;hasattr 兼容 <5 的旧名
+        if hasattr(self.model, "get_embedding_dimension"):
+            self.dim = self.model.get_embedding_dimension()
+        else:
+            self.dim = self.model.get_sentence_embedding_dimension()
 
     def encode_corpus(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
         vecs = self.model.encode(

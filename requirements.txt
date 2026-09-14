@@ -12,4 +12,5 @@ huggingface_hub
 sentence-transformers
 torch
 pytest
-mcp
+# MCPServer/ToolError 为 mcp 2.x 路径(1.x 叫 FastMCP);升 3.x 前需回归 tests/test_mcp_server.py
+mcp>=2.2,<3

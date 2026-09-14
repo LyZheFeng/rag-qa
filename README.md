@@ -118,7 +118,7 @@ tests/      77 个单测(离线 75 + 真实索引 MCP 协议 2)
 | 原语 | 定义 | 谁来调用 | 为什么用它 |
 |---|---|---|---|
 | **tools** | `search(query, top_k≤10)` | 模型,带参数 | 编号 chunk 列表,编号口径与主链路 `build_context` 一致,客户端直接沿用引用纪律 |
-| **resources** | `rag-qa://corpus` | 客户端,按 URI 读 | 索引/语料统计(manifest 同源:检索模式、1701 chunks、122 篇文档清单),静态上下文不占工具轮次 |
+| **resources** | `rag-qa://corpus` | 客户端,按 URI 读 | 索引/语料统计(manifest 同源:检索模式、chunk 数、文档清单,数值随索引重建更新),静态上下文不占工具轮次 |
 | **prompts** | `answer_with_citations(question)` | 用户主动触发 | "忠于检索内容、编号引用、不足即拒答"的 RAG 纪律模板,与主链路 SYSTEM_PROMPT 同源 |
 
 启动只读配置(秒级),嵌入模型/索引在首次 `search` 才加载(~10s,进程内只付一次)
