@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # 单平台起步(写法参考 chatbi;开发机 Windows,前端另有本地 npm run build 验证)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: 安装依赖(先验证 requirements.txt 自足,再用 lock 锁版本防漂移;torch 预装 CPU 版,Linux 下避开 CUDA 传递依赖全家桶)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+          pip install -r requirements.lock
+      - name: 测试(离线:LLM 全 Fake、不需要 .env 与内网;真实索引的 2 例 MCP 协议测试自动跳过)
+        run: python -X utf8 -m pytest -q
