@@ -51,7 +51,7 @@ python scripts/build_index.py               # 122 篇 md → 1701 chunk → Chro
 
 # 4) 起服务
 python -m uvicorn app.api:app --port 8000   # API:http://localhost:8000/docs
-streamlit run app/ui.py                     # UI :http://localhost:8501
+cd web && npm install && npm run dev        # 正式前端 :http://localhost:3000(Next.js,SSE 流式 + 引用溯源,详见 web/README.md)
 ```
 
 说明:生成依赖内网 vLLM,需能访问 `10.14.6.55`;检索/嵌入完全本地——LLM 不通时
@@ -59,7 +59,15 @@ streamlit run app/ui.py                     # UI :http://localhost:8501
 细节在服务端日志)。单测:`pytest`(75 个,全部离线;系统临时目录的 `pytest-of-*` 子树不可用的
 受限环境会自动回落到项目内目录)。
 
-Docker 部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
+Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
+
+## 界面
+
+![Next.js 前端:流式回答 + 引用溯源](docs/web-ui.png)
+
+`web/`(Next.js 16 + React 19 + Tailwind v4)为正式前端:SSE 流式打字机渲染、答案内 `[n]` 角标
+点击展开 chunk 原文(文档名 + 路径 + 相似度)、拒答盒、侧栏服务状态轮询;与 Streamlit 原型对齐视觉、
+交互升级为流式(原 `app/ui.py` 已删除,历史版本见 git)。结构详见 `web/README.md`。
 
 ## 版本演进与评估(200 题全量真实跑批)
 

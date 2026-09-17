@@ -26,4 +26,4 @@ COPY pipeline/ pipeline/
 COPY data/chroma/ data/chroma/
 COPY data/chunks/chunks.jsonl data/chunks/
 
-EXPOSE 8000 8501
+EXPOSE 8000

@@ -2,7 +2,27 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:项目 4 Day 24 完成(2026-09-14,rag-qa 文档检索 MCP server + 双 server 演示 client,77 例全绿)→ 下一步见文末「项目 4 后续」
+## 状态:阶段五 · 前端工作流全部完成(2026-09-17,Streamlit 已移除,Next.js 为唯一前端;详细见「阶段五」节)→ 主线收口
+
+## 阶段五 · 统一与收尾完成情况(2026-09-17,`frontend-upgrade-workflow.md` 阶段 5;chatbi 侧改动见其仓 PROGRESS)
+
+- **前端统一(复制对齐)**:`web/lib/sse.ts` 与 chatbi 逐字对齐(补 headers 参数,本仓调用点兼容);版心 840→860px;`next.config.ts` 补 `allowedDevOrigins: ["127.0.0.1"]`——**本仓实测踩坑:用 127.0.0.1 访问 dev server 时 Next 默认拦截跨源 HMR/chunk,页面停在未水合状态(按钮无响应、轮询不走),之前会话都用 localhost 访问未暴露**;`npm run build` 含 TS 检查通过
+- **移除 Streamlit**:`app/ui.py` 删除(历史见 git);requirements.txt 去 streamlit(本仓无 lock,重装验证以「卸载 streamlit → 94 例全绿」执行:业务代码零 streamlit 传递依赖引用,ui.py 仅 stdlib+streamlit+app 模块);`app/api.py` sys.path 注释、Dockerfile `EXPOSE 8000 8501 → 8000`、README 运行说明同步
+- **README**:快速开始改 uvicorn + `web/` 前端;新增「界面」节配 `docs/web-ui.png`(本次重拍:流式回答 + `[n]` 角标展开 chunk 原文 + 拒答盒同框)
+- **验收(= 计划通关标准③)**:浏览器实测——两轮对话分别走拒答路径(拒答盒 + 引用 0/5)与正常引用路径(流式打字机 + `[1]` 角标点击展开 chunk 原文 + 引用来源卡),侧栏服务在线;无 Streamlit 痕迹
+- **环境观察(非回归)**:「Depends 依赖注入怎么用?」在当前 vLLM 服务端状态下被生成侧拒答(检索正常,首命中 tutorial/dependencies/index.md score 0.977;另两道原通过题仍正常出引用)——temperature=0 的确定性只在不重启的同一服务端内成立,跨会话的共享 vLLM 状态漂移会改变单题表现,评估数字以当次跑批为准
+
+## 阶段四 · rag-qa 前端改造完成情况(2026-09-17)
+
+- **后端只加接口**(零回归,全量 94 例测试绿,新增 13 例 `tests/test_stream_api.py`):
+  - `GET /ask/stream`(SSE):事件序 `sources`(检索完成推全部命中)→ `delta*`(临时增量)→ [`retry` → `delta*`]* → `done`(权威终态,完整 AskResponse);错误收拢为 `error` 事件(含 trace_id,与 /ask 502 同口径);并发沿用 `_ask_semaphore`(拿放都在同步生成器内,流结束即释放,有测试)
+  - **严格 JSON 契约与流式并存的解法**:LLM 仍输出单 JSON,服务端 `scan_answer()` 从半成品 JSON 增量解出 answer 字段前缀下发(容忍 `</think>` 前缀、嵌套/字符串内出现的伪 "answer" 键、尾部不完整转义 `\`/`\uXXX`);流中显示是临时的,`retry` 事件让前端清空重打,权威状态永远是完整解析后的 done——解析纪律未放松
+  - CORS:Settings 新增 `cors_origins`(逗号分隔,默认 localhost:3000 两写法);`iterate_in_threadpool` 桥接同步生成器,不占事件循环
+- **前端 `web/`**(Next.js 16.3 + React 19.2 + Tailwind v4,`npm run build` 含 TS 检查通过):
+  - 结构见 `web/README.md`;`lib/types.ts` 与 `app/schemas.py` 逐字段对齐;`lib/sse.ts` 用 fetch+ReadableStream 解析 SSE(EventSource 不支持自定义头);`lib/rehype-citations.ts` 把答案内 `[n]` 替换为可点击角标(自写 rehype 插件遍历文本节点,无额外依赖)
+  - 版式沿袭 Streamlit 版视觉(青绿 #009687 主色、深色侧栏、chips、拒答盒);侧栏 `/health` 15s 轮询展示检索策略/chunks/嵌入/生成模型;done 后显示 引用 n/m + 检索/生成/总计 ms + 解析模式 chips
+- **端到端实测**(真实 vLLM Qwen3.8-27B + 浏览器):curl 直连 SSE 14 个 delta 帧事件序正确;浏览器实测通过:示例问题点击→流式打字→行内 `[2]` 角标点击展开 chunk 原文→拒答路径(知识库外问题 🚫 拒答盒+引用 0/5)→清空对话回欢迎页;截图存 `docs/web-ui.png`
+- **Streamlit 版保留**(按工作流约定,阶段五新前端稳定验收后才删);启动:`uvicorn app.api:app --port 8000` + `cd web && npm run dev`(详见 `web/README.md`)
 
 ## 项目 4 Day 24 完成情况(2026-09-14,MCP 化)
 
@@ -12,10 +32,16 @@
 - **双 server 演示 client**(代码在 chatbi 仓 `scripts/mcp_client_demo.py`,依赖其 venv 的 mcp+openai):一次会话连 chatbi-db + rag-qa-docs,工具按 `server.工具` 命名空间路由,vLLM Qwen3.8-27B function calling 编排(temperature=0);内置 3 问实测:数据库题、文档题(带编号引用)、**混合题(同一循环里先 search 文档再 get_schema→execute_sql)**;答案与直连 SQL 核验一致(2014 top3 国家及金额、2013 Consumer 100 张订单)
 - requirements.txt 增 `mcp`;README 增「MCP 工具设计」节
 
+## Day 25-26 完成情况(2026-09-14,统一 Landing 页;详见 chatbi 仓 PROGRESS)
+
+- **`D:\LLM_training\portfolio\`**(不建仓库):`index.html` 纯静态单文件(零外部依赖,离线可开)+ `assets/`(chatbi 三张 UI 截图)。rag-qa 在页面中占"项目 1"大块:链路流程图(bge-m3+BM25→RRF→严格 JSON→引用/拒答)、6 指标卡、五轮版本演进表(含两次负结果判决)、关键读数(doc vs chunk 口径发现、增益边际递减、拒答校准、judge 盲评)与工程要点;MCP server 作为"项目 4"与 chatbi-db 并列展示
+- 数字全部取自两仓 README/PROGRESS,无新造;本地起站浏览器逐区块截图验收通过
+- demo 录制留给用户:页面 demo 区已写四段大纲 + `<video>` 嵌入点(录好放 `portfolio/assets/demo.mp4` 取消注释即可)
+
 ## 项目 4 后续(新会话)
 
-1. Day 25-26:统一 Landing 页(`D:\LLM_training\portfolio\`,不建仓库)+ 2 分钟 demo 录制(client demo 三问是底稿,自愈纠错那一刻用 chatbi 仓 `scripts/demo_ask.py` 或注错 SQL 场景);
-2. Day 27-28:简历段落 + 面试题(MCP 高频题素材已就位:两 server 三原语对比、命名空间路由、护栏/拒答纪律在 MCP 下的回传设计);
+1. Day 27-28:简历段落 + 面试题(MCP 高频题素材已就位:两 server 三原语对比、命名空间路由、护栏/拒答纪律在 MCP 下的回传设计);
+2. 用户自录 2 分钟 demo 后放 `portfolio/assets/demo.mp4`,取消 index.html 中 `<video>` 注释即嵌入;
 3. 可选:双仓 README 交叉链接复核、rag-qa 补 requirements.lock(chatbi 有、本仓无)。
 
 ---

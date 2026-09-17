@@ -1,23 +1,29 @@
-"""FastAPI 服务：POST /ask 问答 + GET /health（存活）+ GET /ready（就绪）。
+"""FastAPI 服务：POST /ask 问答 + GET /ask/stream（SSE 流式）+ GET /health（存活）+ GET /ready（就绪）。
 
 启动（仓库根）：uvicorn app.api:app --port 8000
 - /health 便宜（不碰 LLM），存活探针用
 - /ready 会 ping LLM（3s 超时），向量与 LLM 都就绪才 200，编排就绪探针用
+- /ask/stream 事件序：sources（检索完成）→ delta*（临时增量）→ [retry → delta*]* → done（权威终态）
+  错误一律收拢为 error 事件（含 trace_id），流以 done/error 收尾
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 import threading
 import uuid
+from collections.abc import Iterable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # streamlit/uvicorn 任意 cwd 下可 import
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # uvicorn/pytest 任意 cwd 下可 import
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.concurrency import run_in_threadpool
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.concurrency import iterate_in_threadpool, run_in_threadpool
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from . import __version__
 from .schemas import AskRequest, AskResponse
@@ -38,6 +44,12 @@ def _vector_core(svc: RagService):
     while r is not None and not hasattr(r, "collection"):
         r = getattr(r, "vector", None) or getattr(r, "base", None) or getattr(r, "child", None)
     return r
+
+
+def _cors_origins() -> str:
+    from pipeline.config import get_settings
+
+    return get_settings().cors_origins
 
 
 @asynccontextmanager
@@ -67,6 +79,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="rag-qa", version=__version__, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in _cors_origins().split(",") if o.strip()],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 def _svc(request: Request) -> RagService:
@@ -130,3 +149,41 @@ async def ask(req: AskRequest, request: Request) -> AskResponse:
         ) from e
     finally:
         _ask_semaphore.release()
+
+
+def _sse_frame(event: str, payload: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+@app.get("/ask/stream")
+async def ask_stream(
+    request: Request,
+    q: str = Query(min_length=2, max_length=1000),
+    k: int = Query(default=5, ge=1, le=10),
+):
+    svc = _svc(request)
+
+    def guarded() -> Iterable[tuple[str, dict]]:
+        # 信号量拿放都在同步生成器内：请求体未开始迭代就不占用；占用时长=整条流
+        if not _ask_semaphore.acquire(blocking=False):
+            yield "error", {"message": "服务繁忙，请稍后重试"}
+            return
+        try:
+            yield from svc.ask_stream(q, k)
+        finally:
+            _ask_semaphore.release()
+
+    async def sse():
+        try:
+            async for event, payload in iterate_in_threadpool(guarded()):
+                yield _sse_frame(event, payload)
+        except Exception as e:  # 与 /ask 同口径：细节进日志，前端只拿 trace_id
+            trace_id = uuid.uuid4().hex[:12]
+            logger.exception("ask/stream 失败 trace_id=%s", trace_id)
+            yield _sse_frame("error", {"message": "生成服务暂时不可用", "trace_id": trace_id})
+
+    return StreamingResponse(
+        sse(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
