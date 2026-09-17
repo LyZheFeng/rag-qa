@@ -41,6 +41,7 @@ LLM 依据资料作答并逐句标注引用,资料不足时诚实拒答而非编
 python -m venv .venv
 .venv\Scripts\activate           # Windows;Linux/macOS 为 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements.lock # 可复现安装:锁版本(全新 venv 装 txt 验证 94 例全绿后 freeze 而来;pywin32 带 win32 平台标记)
 
 # 2) 配置:LLM 指向内网 vLLM;模型缓存指到本机有空间的盘
 cp .env.example .env             # 填 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL,并把 HF_HOME 改成本机实际路径
@@ -56,8 +57,9 @@ cd web && npm install && npm run dev        # 正式前端 :http://localhost:300
 
 说明:生成依赖内网 vLLM,需能访问 `10.14.6.55`;检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
-细节在服务端日志)。单测:`pytest`(75 个,全部离线;系统临时目录的 `pytest-of-*` 子树不可用的
-受限环境会自动回落到项目内目录)。
+细节在服务端日志)。单测:`pytest`(94 个 = 离线 92 + 依赖真实索引的 MCP 协议 2,后者在无索引
+环境自动跳过;CI 在 ubuntu 上跑同一套。系统临时目录的 `pytest-of-*` 子树不可用的受限环境会
+自动回落到项目内目录)。
 
 Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
 
@@ -113,7 +115,7 @@ app/        检索(hybrid/rerank/rewrite/parentchild 开关)· 生成 · 编排 
 pipeline/   语料加载 / 清洗 / 切块 / 嵌入 / 入库
 eval/       出题 · 预筛 · 跑批 · 指标 · 校准 + results.md / calibration.md
 data/       语料 / chunk / Chroma / 评估产物(模型缓存不入库)
-tests/      77 个单测(离线 75 + 真实索引 MCP 协议 2)
+tests/      94 个单测(离线 92 + 真实索引 MCP 协议 2,CI 上自动跳过)
 ```
 
 ## MCP 工具设计(项目 4 Day 24,官方 SDK `mcp` 2.x,stdio transport)
