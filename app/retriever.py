@@ -10,7 +10,7 @@ from pipeline.store import get_collection
 
 from .schemas import Hit
 
-# 沿用 uvicorn 的错误日志通道（服务端免配置可见）；Streamlit 侧落到 root 兜底输出
+# 沿用 uvicorn 的错误日志通道（服务端免配置可见）；其他宿主落到 root 兜底输出
 logger = logging.getLogger("uvicorn.error")
 
 

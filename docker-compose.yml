@@ -12,19 +12,5 @@ services:
       - hf-cache:/models
     restart: unless-stopped
 
-  ui:
-    image: rag-qa:latest
-    command: streamlit run app/ui.py --server.address 0.0.0.0 --server.port 8501 --browser.gatherUsageStats false
-    env_file: .env
-    environment:
-      - HF_HOME=/models
-    ports:
-      - "8501:8501"
-    volumes:
-      - hf-cache:/models
-    restart: unless-stopped
-    depends_on:
-      - api
-
 volumes:
   hf-cache:

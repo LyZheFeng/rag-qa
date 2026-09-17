@@ -111,7 +111,7 @@ def _empty_spec(answer: str) -> AnswerSpec:
 
 @lru_cache(maxsize=1)
 def get_service() -> RagService:
-    """进程内单例（FastAPI lifespan / Streamlit cache 共用）。"""
+    """进程内单例（FastAPI lifespan / 各入口共用）。"""
     from .retriever import get_retriever
 
     return RagService(get_retriever(), LLMGenerator.from_settings())
