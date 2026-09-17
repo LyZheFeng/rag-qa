@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* 品牌令牌：沿袭 Streamlit 版视觉（青绿主色 + 深色侧栏） */
+:root {
+  --acc: #009687;
+  --acc-soft: #e6f7f4;
+  --ink: #12332e;
+  --muted: #64748b;
+  --line: #e4eaee;
+}
+
+@theme inline {
+  --color-acc: var(--acc);
+  --color-acc-soft: var(--acc-soft);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --font-sans: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(1200px 420px at 50% -120px, #eaf9f6 0%, rgba(234, 249, 246, 0) 62%),
+    linear-gradient(180deg, #fbfdfd, #f5f9f8);
+  background-attachment: fixed;
+  color: var(--ink);
+}
+
+/* 流式输出时的光标 */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.stream-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--acc);
+  animation: cursor-blink 0.9s step-end infinite;
+}

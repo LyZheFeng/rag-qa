@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     retriever: Literal["vector", "hybrid", "rerank", "rewrite", "parentchild"] = "hybrid"  # v0.2 定版默认
     hybrid_candidates: int = Field(default=20, ge=API_MAX_K)  # hybrid 每路召回深度
     rrf_k: int = Field(default=60, ge=1)  # RRF 融合常数
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"  # 逗号分隔，本地前端开发端口
 
     model_config = {"env_file": REPO_ROOT / ".env", "extra": "ignore"}
 
