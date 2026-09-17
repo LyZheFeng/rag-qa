@@ -2,7 +2,19 @@
 
 > 每阶段收口更新本文件。新会话从这里接力。
 
-## 状态:阶段五 · 前端工作流全部完成(2026-09-17,Streamlit 已移除,Next.js 为唯一前端;详细见「阶段五」节)→ 主线收口
+## 状态:优化计划阶段 0+1 完成(2026-09-17,`optimization-plan.md` 第一部分:快赢 + 评测守护)→ 下一步 Day 27-28 求职材料
+
+## 阶段 0+1 · 优化计划第一部分完成情况(2026-09-17,`optimization-plan.md`;chatbi 侧改动见其仓 PROGRESS)
+
+- **阶段 0 快赢**:
+  - `requirements.lock` 补齐(P0-1 纪律,照抄 chatbi):全新 venv 装 requirements.txt → **94 例全绿(28.9s)** → freeze 出 130 项;pywin32 手工补 `sys_platform=="win32"` 平台标记(chromadb 的 Windows 条件依赖,pip freeze 不带 marker,裸写 Linux 装不上);README 快速开始补 lock 用法、过时单测数(75/77 两处)修为 94(离线 92 + 真实索引 2)
+  - CI 上线(`.github/workflows/ci.yml`,参考 chatbi 写法,ubuntu 单平台起步):先装 requirements.txt 验证声明自足、再装 lock 锁版本防漂移;torch 预装 CPU 源(否则 Linux 下拉 CUDA 传递依赖全家桶);**首跑即绿(1m43s)**,真实索引 2 例自动跳过
+  - 前端:对话历史 localStorage 持久化(key `ragqa.chat.turns.v1`,与 chatbi 复制对齐)——刷新不丢(浏览器实测:回答 + `[n]` 角标 + 引用来源卡 + 指标全部恢复)、「清空对话」即清存储(实测 storage 置 null)、刷新时在途轮转可重试错误态、存储损坏整体弃用不挡界面、超配额退化存最近 20 条;`npm run build` 过
+- **阶段 1 评测守护**:`scripts/smoke_eval.py` 固定 10 题(5 道前端示例胶囊原题 + 3 道 200 题金标集题 + 2 道金标拒答题),断言可答题「检索 top-5 命中 gold doc + 引用数 ≥1 + 未拒答」、拒答题「refused 且引用为空」;与 `eval/smoke_baseline.json` 快照对比输出一页漂移报告,跑完写新快照
+  - **当次跑批(2026-09-17 15:14,hybrid top-5 + vLLM Qwen3.8-27B):9/10 通过,硬失败 0;观察名单 1 题**
+  - **Depends 题仍处漂移(观察名单)**:「Depends 依赖注入怎么用?」检索首命中 gold(名次 #1,score≈0.98)正常、生成侧仍拒答——与阶段五观察一致,题已固化为 watch 题:断言失败不判红只进漂移报告,等 vLLM 服务端状态变化后看它翻回
+  - 踩坑:胶囊「如何声明请求体?」检索稳定命中 index.md 概览页(回答正确、引用合法,但 gold 配不上金标的 body.md;检索本地确定性,硬断言会永远红)——body.md 覆盖改用金标原题 fact-029 措辞,胶囊措辞不进断言集
+- 用法:`.venv/Scripts/python.exe -X utf8 scripts/smoke_eval.py`;纪律:演示前、报任何评估数字前必跑,结果带日期记本文件(口径「当次跑批」)
 
 ## 阶段五 · 统一与收尾完成情况(2026-09-17,`frontend-upgrade-workflow.md` 阶段 5;chatbi 侧改动见其仓 PROGRESS)
 
@@ -40,9 +52,11 @@
 
 ## 项目 4 后续(新会话)
 
+> 当前执行文件:`D:\LLM_training\optimization-plan.md`(2026-09-17 制定,推荐路线:第一部分已完成,后续按第二部分 Day 27-28 → 暂缓区)。
+
 1. Day 27-28:简历段落 + 面试题(MCP 高频题素材已就位:两 server 三原语对比、命名空间路由、护栏/拒答纪律在 MCP 下的回传设计);
 2. 用户自录 2 分钟 demo 后放 `portfolio/assets/demo.mp4`,取消 index.html 中 `<video>` 注释即嵌入;
-3. 可选:双仓 README 交叉链接复核、rag-qa 补 requirements.lock(chatbi 有、本仓无)。
+3. ~~可选:rag-qa 补 requirements.lock(chatbi 有、本仓无)~~ 已完成(阶段 0);双仓 README 交叉链接复核仍可选。
 
 ---
 ## 状态:外部评审四轮全部收口(2026-09-12)✅ → 定位本地运行(部署/frp/转公开取消)→ 主线收口;剩余零散可选项见 `notes/codex-review-2026-09-12.md`

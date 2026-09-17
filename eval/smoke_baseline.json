@@ -1,0 +1,192 @@
+{
+ "date": "2026-09-17 15:14",
+ "retriever": "hybrid",
+ "llm_model": "Qwen3.8-27B",
+ "k": 5,
+ "results": [
+  {
+   "qid": "fact-029",
+   "question": "在 FastAPI 的数据模型中，如果字段 `description` 和 `tax` 是可选的，一个包含 `name` 和 `price` 的最小有效 JSON 请求体是什么样的？",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 1,
+   "gold_doc": "tutorial/body.md",
+   "gold_rank": 2,
+   "cited_docs": [
+    "tutorial/body.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 2880,
+   "answer_head": "如果字段 `description` 和 `tax` 是可选的（默认值为 `None`），一个包含 `name` 和 `price` 的最小有效 JSON 请求"
+  },
+  {
+   "qid": "demo-02",
+   "question": "Depends 依赖注入怎么用?",
+   "mode": "answer",
+   "watch": true,
+   "ok": false,
+   "failed": [
+    "未拒答",
+    "引用数>=1"
+   ],
+   "refused": true,
+   "n_cited": 0,
+   "gold_doc": "tutorial/dependencies/index.md",
+   "gold_rank": 1,
+   "cited_docs": [],
+   "parse_mode": "json",
+   "total_ms": 1911,
+   "answer_head": "资料中未提供 `Depends` 的具体代码用法或参数定义，仅说明了依赖注入的概念、层级结构及与后台任务的结合方式，缺少 `Depends` 的具体使用示例。"
+  },
+  {
+   "qid": "demo-03",
+   "question": "怎么统一处理异常?",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 3,
+   "gold_doc": "tutorial/handling-errors.md",
+   "gold_rank": 1,
+   "cited_docs": [
+    "tutorial/handling-errors.md",
+    "tutorial/handling-errors.md",
+    "tutorial/handling-errors.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 3167,
+   "answer_head": "可以使用与 Starlette 相同的异常处理工具添加自定义异常处理器，通过 `@app.exception_handler()` 装饰器来全局处理异常 [3]"
+  },
+  {
+   "qid": "demo-04",
+   "question": "后台任务 BackgroundTasks 怎么写?",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 3,
+   "gold_doc": "tutorial/background-tasks.md",
+   "gold_rank": 1,
+   "cited_docs": [
+    "tutorial/background-tasks.md",
+    "tutorial/background-tasks.md",
+    "tutorial/background-tasks.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 4224,
+   "answer_head": "首先导入 `BackgroundTasks` 并在路径操作函数中使用类型声明 `BackgroundTasks` 定义一个参数 [2]。FastAPI 会创建一"
+  },
+  {
+   "qid": "demo-05",
+   "question": "如何用 TestClient 做测试?",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 3,
+   "gold_doc": "tutorial/testing.md",
+   "gold_rank": 2,
+   "cited_docs": [
+    "advanced/testing-websockets.md",
+    "tutorial/testing.md",
+    "tutorial/testing.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 3900,
+   "answer_head": "使用 TestClient 进行测试的步骤如下：首先安装 httpx 库 [4]。然后导入 TestClient，并传入 FastAPI 应用实例创建客户端 ["
+  },
+  {
+   "qid": "demo-06",
+   "question": "路径参数如何校验和转换类型?",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 2,
+   "gold_doc": "tutorial/path-params.md",
+   "gold_rank": 3,
+   "cited_docs": [
+    "tutorial/path-params-numeric-validations.md",
+    "tutorial/query-params.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 1908,
+   "answer_head": "路径参数可以通过使用 `Path` 声明校验和元数据，这与使用 `Query` 为查询参数声明校验的方式相同 [1]。声明 Python 类型后，路径参数的值会"
+  },
+  {
+   "qid": "fact-001",
+   "question": "在 FastAPI 中使用 Enum 定义标签时，如何在路径操作函数中引用这些标签？",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 1,
+   "gold_doc": "tutorial/path-operation-configuration.md",
+   "gold_rank": 1,
+   "cited_docs": [
+    "tutorial/path-operation-configuration.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 9391,
+   "answer_head": "在 FastAPI 中使用 Enum 定义标签时，可以在路径操作函数的 `tags` 参数中通过 `Tags.标签名` 的形式引用这些标签，例如 `tags=["
+  },
+  {
+   "qid": "fact-008",
+   "question": "在处理用户模型时，为什么通常需要将输入模型、输出模型和数据库模型分开定义？",
+   "mode": "answer",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": false,
+   "n_cited": 1,
+   "gold_doc": "tutorial/extra-models.md",
+   "gold_rank": 1,
+   "cited_docs": [
+    "tutorial/extra-models.md"
+   ],
+   "parse_mode": "json",
+   "total_ms": 1699,
+   "answer_head": "在处理用户模型时，通常需要将输入模型、输出模型和数据库模型分开定义，因为输入模型应该包含密码，输出模型不应包含密码，而数据库模型可能需要包含哈希后的密码 [1]"
+  },
+  {
+   "qid": "unans-004",
+   "question": "在 FastAPI 应用中，如何集成 OpenTelemetry 以实现分布式链路追踪（Tracing），并自动记录每个请求的 Trace ID 和 Span ID 到日志中？",
+   "mode": "refuse",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": true,
+   "n_cited": 0,
+   "gold_doc": null,
+   "gold_rank": "-",
+   "cited_docs": [],
+   "parse_mode": "json",
+   "total_ms": 1462,
+   "answer_head": "提供的资料中未包含关于在 FastAPI 中集成 OpenTelemetry 实现分布式链路追踪或记录 Trace ID 和 Span ID 的信息。"
+  },
+  {
+   "qid": "unans-005",
+   "question": "如何在 FastAPI 中集成 gRPC 服务以处理高并发的内部微服务通信，并实现与 REST API 的共享依赖注入？",
+   "mode": "refuse",
+   "watch": false,
+   "ok": true,
+   "failed": [],
+   "refused": true,
+   "n_cited": 0,
+   "gold_doc": null,
+   "gold_rank": "-",
+   "cited_docs": [],
+   "parse_mode": "json",
+   "total_ms": 5571,
+   "answer_head": "提供的资料中未包含关于在 FastAPI 中集成 gRPC 服务、处理高并发内部微服务通信或实现 gRPC 与 REST API 共享依赖注入的具体信息。资料仅"
+  }
+ ]
+}
