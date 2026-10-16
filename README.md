@@ -55,7 +55,7 @@ python -m uvicorn app.api:app --port 8000   # API:http://localhost:8000/docs
 cd web && npm install && npm run dev        # 正式前端 :http://localhost:3000(Next.js,SSE 流式 + 引用溯源,详见 web/README.md)
 ```
 
-说明:生成依赖内网 vLLM,需能访问 `10.14.6.55`;检索/嵌入完全本地——LLM 不通时
+说明:生成依赖 vLLM(自建/内网均可,地址见 `.env` 的 `LLM_BASE_URL`);检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
 细节在服务端日志)。单测:`pytest`(94 个 = 离线 92 + 依赖真实索引的 MCP 协议 2,后者在无索引
 环境自动跳过;CI 在 ubuntu 上跑同一套。系统临时目录的 `pytest-of-*` 子树不可用的受限环境会

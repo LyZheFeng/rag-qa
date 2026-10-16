@@ -295,7 +295,7 @@ def test_api_ask_error_sanitized():
         retriever = FakeRetriever([])
 
         def ask(self, question, k=5):
-            raise RuntimeError("内网 vLLM 连接被拒绝: http://10.14.6.55:30561 secret-detail")
+            raise RuntimeError("内网 vLLM 连接被拒绝: http://vllm.internal:8000 secret-detail")
 
     app.state.service = BoomService()
     client = TestClient(app)

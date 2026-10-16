@@ -93,8 +93,8 @@
 | 项 | 决定 |
 |---|---|
 | 语料 | FastAPI 官方中文文档（GitHub docs/zh/docs；决策时估约 150 篇，实际清洗后入库 122 篇） |
-| 仓库 | 独立仓库 LyZheFeng/rag-qa（保持私有；原"终稿后转公开"已随部署取消，2026-09-12） |
-| 生成模型 | 内网 vLLM `http://10.14.6.55:30561/v1`，`Qwen3.8-27B`，key=1234，`enable_thinking:false`，已验证可用 |
+| 仓库 | 独立仓库 LyZheFeng/rag-qa（2026-10-16 起公开，求职展示；原“保持私有”决策同日作废） |
+| 生成模型 | vLLM（自建/内网）`http://<vllm-host>:<port>/v1`，`Qwen3.8-27B`，key 见 .env，`enable_thinking:false`，已验证可用 |
 | 嵌入/重排 | 本地 bge-m3 + bge-reranker-v2-m3（HF_HOME=D 盘，hf-mirror 下载；reranker Phase 4 前再下） |
 | 部署 | **本地运行即可**(2026-09-12 用户拍板,原"学生机 Docker + frp"取消;Docker 文件留档备用) |
 | 测试集配比 | 事实 100 / 推理 60 / 无法回答 40，共 200 题 |

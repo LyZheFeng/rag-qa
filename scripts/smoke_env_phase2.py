@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -31,7 +32,7 @@ from openai import OpenAI
 from pipeline.config import get_settings
 
 s = get_settings()
-client = OpenAI(base_url="http://10.14.6.55:30561/v1", api_key="1234", timeout=60)
+client = OpenAI(base_url=os.environ.get("LLM_BASE_URL", "http://localhost:8000/v1"), api_key=os.environ.get("LLM_API_KEY", "dummy"), timeout=60)
 resp = client.chat.completions.create(
     model="Qwen3.8-27B",
     messages=[
