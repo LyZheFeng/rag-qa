@@ -1,4 +1,4 @@
-"""生成：编号上下文 → vLLM Qwen → 严格 JSON（answer/citations/refused）。
+"""生成：编号上下文 → OpenAI 兼容 LLM → 严格 JSON（answer/citations/refused）。
 
 解析策略：失败重试 1 次（附纠正提示），再失败安全拒答（refused=true，
 answer=固定提示语，citations 为空），parse_mode 记录走了哪条路。
@@ -46,7 +46,7 @@ def build_context(hits: list[Hit]) -> str:
 
 def extract_json(text: str) -> dict | None:
     """从 LLM 输出里抠 JSON：剥思维链/围栏/前后缀，取首个 { 到末个 }。"""
-    if "</think>" in text:  # enable_thinking 失效时的兜底
+    if "</think>" in text:  # 模型仍输出思维链时的兜底
         text = text.split("</think>")[-1]
     text = text.strip()
     if text.startswith("```"):
@@ -160,10 +160,12 @@ def scan_answer(buffer: str) -> tuple[str, bool] | None:
 
 
 class LLMGenerator:
-    def __init__(self, client: OpenAI, model: str, max_tokens: int = MAX_TOKENS):
+    def __init__(self, client: OpenAI, model: str, max_tokens: int = MAX_TOKENS,
+                 extra_body: dict | None = None):
         self.client = client
         self.model = model
         self.max_tokens = max_tokens
+        self.extra_body = extra_body or {}
 
     @classmethod
     def from_settings(cls) -> "LLMGenerator":
@@ -175,27 +177,32 @@ class LLMGenerator:
         return cls(
             OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=60),
             s.llm_model,
+            extra_body=s.llm_extra_body,
         )
 
     def _chat(self, messages: list[dict]) -> str:
-        resp = self.client.chat.completions.create(
+        kwargs: dict = dict(
             model=self.model,
             messages=messages,
             temperature=0,
             max_tokens=self.max_tokens,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
+        if self.extra_body:
+            kwargs["extra_body"] = self.extra_body
+        resp = self.client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content or ""
 
     def _chat_stream(self, messages: list[dict]) -> Iterator[str]:
-        stream = self.client.chat.completions.create(
+        kwargs: dict = dict(
             model=self.model,
             messages=messages,
             temperature=0,
             max_tokens=self.max_tokens,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             stream=True,
         )
+        if self.extra_body:
+            kwargs["extra_body"] = self.extra_body
+        stream = self.client.chat.completions.create(**kwargs)
         for chunk in stream:
             delta = chunk.choices[0].delta.content if chunk.choices else None
             if delta:

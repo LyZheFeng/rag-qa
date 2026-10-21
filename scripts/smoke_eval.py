@@ -3,7 +3,7 @@
 断言:
   - 可答题:未拒答 + 引用数 >= 1 + 检索 top-5 命中 gold doc
   - 拒答题:refused 且引用为空
-  - watch 题(观察名单):断言失败不判红只进漂移报告——已知的 vLLM 服务端漂移
+  - watch 题(观察名单):断言失败不判红只进漂移报告——已知的 LLM 服务端漂移
     (2026-09-17 实锤:「Depends 依赖注入怎么用?」检索首命中 0.977 正常、生成侧拒答;
     temperature=0 的确定性只在不重启的同一服务端内成立,跨会话状态漂移会改变单题表现)
 
@@ -11,7 +11,7 @@
 口径:结果以「当次跑批」为准,带日期记 PROGRESS。
 
 用法:.venv/Scripts/python.exe -X utf8 scripts/smoke_eval.py
-依赖:本地索引 + 内网 vLLM(生成侧);vLLM 不通时 ask 会走降级/拒答路径,看报告即知。
+依赖:本地索引 + OpenAI 兼容 LLM(生成侧);LLM 不通时 ask 会走降级/拒答路径,看报告即知。
 """
 
 from __future__ import annotations
@@ -149,7 +149,7 @@ def main() -> int:
 
     print("\n" + "=" * 78)
     print(f"rag-qa 冒烟评测 · 漂移报告  {time.strftime('%Y-%m-%d %H:%M')}")
-    print(f"检索 {settings.retriever}(top-{K}) | 生成 {settings.llm_model}(内网 vLLM) | 服务加载 {load_s:.1f}s")
+    print(f"检索 {settings.retriever}(top-{K}) | 生成 {settings.llm_model}(OpenAI 兼容) | 服务加载 {load_s:.1f}s")
     print(f"基线快照: {prev['date'] if prev else '无(本次为首跑,跑完即建基线)'}")
     print("-" * 78)
     for r in results:

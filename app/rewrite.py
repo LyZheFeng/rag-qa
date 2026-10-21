@@ -25,22 +25,25 @@ REWRITE_PROMPT = """你在为 FastAPI 中文文档检索系统扩展查询。把
 class QueryRewriter:
     """原问题 → 最多 3 个变体(可能少于 3,失败返回空)。"""
 
-    def __init__(self, client, model: str, max_tokens: int = 400):
+    def __init__(self, client, model: str, max_tokens: int = 400, extra_body: dict | None = None):
         self.client = client
         self.model = model
         self.max_tokens = max_tokens
+        self.extra_body = extra_body or {}
 
     def rewrite(self, question: str) -> list[str]:
         from app.generator import extract_json
 
         try:
-            resp = self.client.chat.completions.create(
+            kwargs: dict = dict(
                 model=self.model,
                 messages=[{"role": "user", "content": REWRITE_PROMPT.format(question=question)}],
                 temperature=0,
                 max_tokens=self.max_tokens,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             )
+            if self.extra_body:
+                kwargs["extra_body"] = self.extra_body
+            resp = self.client.chat.completions.create(**kwargs)
             obj = extract_json(resp.choices[0].message.content or "")
         except Exception:
             return []

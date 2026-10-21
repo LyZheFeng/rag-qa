@@ -1,8 +1,7 @@
-"""Phase 2 开工冒烟：Chroma 可查 + vLLM 可生成（不依赖 app/，独立验证环境）。"""
+"""Phase 2 开工冒烟：Chroma 可查 + OpenAI 兼容 LLM 可生成（不依赖 app/，独立验证环境）。"""
 
 from __future__ import annotations
 
-import os
 import sys
 import time
 from pathlib import Path
@@ -32,16 +31,22 @@ from openai import OpenAI
 from pipeline.config import get_settings
 
 s = get_settings()
-client = OpenAI(base_url=os.environ.get("LLM_BASE_URL", "http://localhost:8000/v1"), api_key=os.environ.get("LLM_API_KEY", "dummy"), timeout=60)
-resp = client.chat.completions.create(
-    model="Qwen3.8-27B",
+client = OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=60)
+kwargs: dict = dict(
+    model=s.llm_model,
     messages=[
         {"role": "system", "content": "只输出 JSON，格式 {\"ok\": true}"},
         {"role": "user", "content": "测试"},
     ],
     temperature=0,
-    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
 )
+if s.llm_extra_body:
+    kwargs["extra_body"] = s.llm_extra_body
+resp = client.chat.completions.create(**kwargs)
 content = resp.choices[0].message.content
 print(f"[3] LLM OK ({time.time()-t0:.1f}s): {content!r}")
-print(f"    usage: {resp.usage.prompt_tokens}p/{resp.usage.completion_tokens}c tokens")
+usage = getattr(resp, "usage", None)
+if usage is not None:
+    print(f"    usage: {usage.prompt_tokens}p/{usage.completion_tokens}c tokens")
+else:
+    print("    usage: (未返回)")

@@ -33,6 +33,12 @@ def get_llm():
     return OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=120), s.llm_model
 
 
+def _extra_kwargs() -> dict:
+    """平台专属字段只在配置了 LLM_EXTRA_BODY 时发送。"""
+    extra_body = get_settings().llm_extra_body
+    return {"extra_body": extra_body} if extra_body else {}
+
+
 def chat_json(client, model: str, prompt: str, max_tokens: int = 1500, temperature: float = 0.0) -> dict | None:
     """一次调用并抠 JSON；失败返回 None（调用方决定重试）。"""
     from app.generator import extract_json
@@ -42,7 +48,7 @@ def chat_json(client, model: str, prompt: str, max_tokens: int = 1500, temperatu
         messages=[{"role": "user", "content": prompt}],
         temperature=temperature,
         max_tokens=max_tokens,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        **_extra_kwargs(),
     )
     text = resp.choices[0].message.content or ""
     obj = extract_json(text)
@@ -56,7 +62,7 @@ def chat_text(client, model: str, prompt: str, max_tokens: int = 1500, temperatu
         messages=[{"role": "user", "content": prompt}],
         temperature=temperature,
         max_tokens=max_tokens,
-        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+        **_extra_kwargs(),
     )
     return (resp.choices[0].message.content or "").strip()
 

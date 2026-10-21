@@ -140,7 +140,7 @@ async def ask(req: AskRequest, request: Request) -> AskResponse:
     try:
         svc = _svc(request)
         return await run_in_threadpool(svc.ask, req.question, req.k)
-    except Exception as e:  # vLLM 断连/超时等，统一 502
+    except Exception as e:  # LLM 断连/超时等，统一 502
         trace_id = uuid.uuid4().hex[:12]
         logger.exception("ask 失败 trace_id=%s", trace_id)  # 完整异常只留服务端日志
         raise HTTPException(

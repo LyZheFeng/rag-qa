@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    # 平台专属请求字段(JSON),默认不发送。
+    # DeepSeek: {"thinking": {"type": "disabled"}}
+    # vLLM/Qwen: {"chat_template_kwargs": {"enable_thinking": false}}
+    llm_extra_body: dict = Field(default_factory=dict)
     collection: str = "fastapi_zh_v1"
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
     retriever: Literal["vector", "hybrid", "rerank", "rewrite", "parentchild"] = "hybrid"  # v0.2 定版默认

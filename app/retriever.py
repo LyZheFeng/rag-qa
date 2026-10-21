@@ -128,7 +128,7 @@ def get_retriever() -> VectorRetriever:
         from .rewrite import QueryRewriter, RewriteRetriever
 
         client = OpenAI(base_url=s.llm_base_url, api_key=s.llm_api_key, timeout=30)
-        rewriter = QueryRewriter(client, s.llm_model)
+        rewriter = QueryRewriter(client, s.llm_model, extra_body=s.llm_extra_body)
         return RewriteRetriever(hybrid, rewriter.rewrite, s.hybrid_candidates, s.rrf_k)
     if s.retriever == "parentchild":  # v0.5:子块检索 → 父块(整节)喂生成
         from .hybrid import BM25Index as _BMI

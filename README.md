@@ -20,7 +20,7 @@ LLM 依据资料作答并逐句标注引用,资料不足时诚实拒答而非编
 │  BM25 中文bigram+代码词 ┘                         │
 └──────────┬────────────────────────────────────┘
            ▼
-┌─ 生成(Qwen3.8-27B,内网 vLLM)──────────────────┐
+┌─ 生成(OpenAI 兼容 API,如 DeepSeek)─────────────┐
 │  编号上下文 → 严格 JSON {answer, citations,      │
 │  refused};解析失败重试 1 次 → 安全拒答           │
 └──────────┬────────────────────────────────────┘
@@ -43,8 +43,8 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -r requirements.lock # 可复现安装:锁版本(全新 venv 装 txt 验证 94 例全绿后 freeze 而来;pywin32 带 win32 平台标记)
 
-# 2) 配置:LLM 指向内网 vLLM;模型缓存指到本机有空间的盘
-cp .env.example .env             # 填 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL,并把 HF_HOME 改成本机实际路径
+# 2) 配置:LLM 指向 OpenAI 兼容 API(DeepSeek 示例见 .env.example);模型缓存指到本机有空间的盘
+cp .env.example .env             # 填 LLM_API_KEY,并把 HF_HOME 改成本机实际路径
 
 # 3) 模型与索引(仅首次;data/chroma/ 不入库,新环境要重建)
 python scripts/download_models.py --embed   # bge-m3 ~2.1GB,走 hf-mirror
@@ -55,7 +55,7 @@ python -m uvicorn app.api:app --port 8000   # API:http://localhost:8000/docs
 cd web && npm install && npm run dev        # 正式前端 :http://localhost:3000(Next.js,SSE 流式 + 引用溯源,详见 web/README.md)
 ```
 
-说明:生成依赖 vLLM(自建/内网均可,地址见 `.env` 的 `LLM_BASE_URL`);检索/嵌入完全本地——LLM 不通时
+说明:生成依赖 OpenAI 兼容 API(DeepSeek/自建 vLLM 均可,地址见 `.env` 的 `LLM_BASE_URL`);检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
 细节在服务端日志)。单测:`pytest`(94 个 = 离线 92 + 依赖真实索引的 MCP 协议 2,后者在无索引
 环境自动跳过;CI 在 ubuntu 上跑同一套。系统临时目录的 `pytest-of-*` 子树不可用的受限环境会
@@ -139,7 +139,7 @@ tests/      94 个单测(离线 92 + 真实索引 MCP 协议 2,CI 上自动跳�
 参数边界、**3 组 query 经 MCP search 与本地 `retriever.retrieve` 逐字一致**;
 Inspector CLI 实测通过(中文 query 命中正确文档,UTF-8 字节干净)。
 演示见 chatbi 仓 `scripts/mcp_client_demo.py`:一次会话连两个 server
-(chatbi-db + rag-qa-docs),vLLM agent 按命名空间路由工具调用。
+(chatbi-db + rag-qa-docs),LLM agent 按命名空间路由工具调用。
 
 ```bash
 # 运行(stdio)与 Inspector 调试
