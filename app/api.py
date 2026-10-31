@@ -160,7 +160,7 @@ def _sse_frame(event: str, payload: dict) -> str:
 async def ask_stream(
     request: Request,
     q: str = Query(min_length=2, max_length=1000),
-    k: int = Query(default=5, ge=1, le=10),
+    k: int | None = Query(default=None, ge=1, le=10),
 ):
     svc = _svc(request)
 

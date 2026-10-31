@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     # 200×3 实测:误拒 1.04%→0%,正确性 +0.05;代价延迟 +0.57s、正确拒答 99.2%→97.5%。
     # 默认开;想回到"无改写"行为设 RETRY_REWRITE=false。
     retry_rewrite: bool = True
+    # v0.10 首轮检索深度。k=5 时 133/160 可答题的 gold 在 top-5;gold 排名 6~8 的 12 道是
+    # 首批可受益者(fact-077/fact-082/reas-005/reas-059 等),9~10 只剩 4 道且多为 5 分,
+    # 故默认 8 而非 10。需满足 top_k < retry_k,否则二次检索拿不到更深的命中。
+    top_k: int = Field(default=8, ge=1, le=20)
 
     @model_validator(mode="after")
     def _check_retry_depth(self) -> "Settings":
@@ -56,6 +60,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"RETRY_K({self.retry_k}) 大于 HYBRID_CANDIDATES({self.hybrid_candidates})："
                 "二次检索拿不到更深的命中，请调大候选深度或调小 RETRY_K"
+            )
+        if self.retry_k and self.retry_k <= self.top_k:
+            raise ValueError(
+                f"RETRY_K({self.retry_k}) 必须大于 TOP_K({self.top_k})，否则误拒兜底拿不到新命中；"
+                "请调大 RETRY_K 或调小 TOP_K"
             )
         return self
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"  # 逗号分隔，本地前端开发端口

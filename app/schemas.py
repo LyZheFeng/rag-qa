@@ -34,7 +34,7 @@ class Latency(BaseModel):
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
-    k: int = Field(default=5, ge=1, le=10)
+    k: int | None = Field(default=None, ge=1, le=10)  # 不传则用配置 TOP_K
 
 
 class AskResponse(BaseModel):

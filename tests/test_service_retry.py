@@ -395,3 +395,29 @@ def test_merge_hits_dedupes_and_renumbers():
     assert [h.chunk_id for h in merged] == [h.chunk_id for h in primary] + [secondary[3].chunk_id]
     assert _has_new(merged, primary) is True
     assert _has_new(primary, primary) is False
+
+
+# ---------- 首轮检索深度（v0.10 top_k） ----------
+
+
+def test_default_k_used_when_not_given():
+    retriever = TopKRetriever(hits(20))
+    gen = ScriptedGenerator([ANSWER_2])
+    svc = RagService(retriever, gen, retry_k=20, default_k=8)
+
+    resp = svc.ask("如何声明请求体")
+
+    assert retriever.calls == [8]
+    assert gen.calls == [8]
+    assert len(resp.retrieved) == 8
+
+
+def test_explicit_k_overrides_default():
+    retriever = TopKRetriever(hits(20))
+    gen = ScriptedGenerator([ANSWER_2])
+    svc = RagService(retriever, gen, retry_k=20, default_k=8)
+
+    resp = svc.ask("如何声明请求体", k=5)
+
+    assert retriever.calls == [5]
+    assert len(resp.retrieved) == 5

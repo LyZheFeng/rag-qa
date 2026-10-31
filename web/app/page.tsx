@@ -116,7 +116,7 @@ export default function Home() {
 
     const abort = new AbortController();
     abortRef.current = abort;
-    const url = `${API_BASE}/ask/stream?q=${encodeURIComponent(q)}&k=5`;
+    const url = `${API_BASE}/ask/stream?q=${encodeURIComponent(q)}`;
     try {
       await streamSse(
         url,

@@ -53,6 +53,23 @@ def test_retry_k_default_and_bounds():
         Settings(retry_k=-1)
 
 
+def test_top_k_default_and_bounds():
+    # 默认 8：gold 排名 6~8 的 12 道可答题是首批受益者
+    assert Settings(_env_file=None).top_k == 8
+    assert Settings(top_k=1).top_k == 1
+    with pytest.raises(Exception):
+        Settings(top_k=0)
+    with pytest.raises(Exception):
+        Settings(top_k=21)
+
+
+def test_top_k_must_be_below_retry_k():
+    with pytest.raises(Exception, match="TOP_K"):
+        Settings(top_k=20)  # 默认 retry_k=20，等于 top_k 时二次检索拿不到新命中
+    Settings(top_k=20, retry_k=0)  # 关掉二次检索则合法
+    Settings(top_k=8, retry_k=20)
+
+
 def test_real_env_loads_cleanly():
     # 实际 .env(RETRIEVER=hybrid 等)应原样通过校验
     s = Settings()

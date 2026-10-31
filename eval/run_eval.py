@@ -54,7 +54,7 @@ def eval_one(service, gen, judge, q: dict) -> dict:
     gen_client, gen_model = gen
     judge_client, judge_model = judge
     t0 = time.perf_counter()
-    resp = service.ask(q["question"], k=5)
+    resp = service.ask(q["question"])
 
     rec = {
         "qid": q["qid"],

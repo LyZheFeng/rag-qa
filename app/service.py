@@ -31,11 +31,12 @@ REWRITE_MESSAGE = "资料不足，改写问题后重答"
 
 class RagService:
     def __init__(self, retriever: VectorRetriever, generator: LLMGenerator, retry_k: int = 20,
-                 retry_rewrite: bool = False):
+                 retry_rewrite: bool = False, default_k: int = 5):
         self.retriever = retriever
         self.generator = generator
         self.retry_k = retry_k  # 0 = 关闭拒答兜底
         self.retry_rewrite = retry_rewrite  # 定向改写兜底（默认关，实验开关）
+        self.default_k = default_k  # 首轮检索深度（get_service 从配置 TOP_K 注入）
 
     def _deeper_retry_k(self, k: int) -> int:
         """需要二次检索时返回更深的 k；关闭或不够深（无新资料）返回 0。"""
@@ -51,7 +52,8 @@ class RagService:
         except Exception:  # noqa: BLE001 —— 改写是兜底支路，失败就跳过而不是中断回答
             return ""
 
-    def ask(self, question: str, k: int = 5) -> AskResponse:
+    def ask(self, question: str, k: int | None = None) -> AskResponse:
+        k = self.default_k if k is None else k
         t0 = time.perf_counter()
         hits = self.retriever.retrieve(question, k=k)
         t1 = time.perf_counter()
@@ -124,7 +126,8 @@ class RagService:
             ),
         )
 
-    def ask_stream(self, question: str, k: int = 5) -> Iterator[tuple[str, dict]]:
+    def ask_stream(self, question: str, k: int | None = None) -> Iterator[tuple[str, dict]]:
+        k = self.default_k if k is None else k
         t0 = time.perf_counter()
         hits = self.retriever.retrieve(question, k=k)
         retrieve_ms = _ms(time.perf_counter() - t0)
@@ -283,4 +286,5 @@ def get_service() -> RagService:
         LLMGenerator.from_settings(),
         retry_k=get_settings().retry_k,
         retry_rewrite=get_settings().retry_rewrite,
+        default_k=get_settings().top_k,
     )
