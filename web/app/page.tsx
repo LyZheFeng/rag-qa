@@ -186,7 +186,7 @@ export default function Home() {
               FastAPI 中文文档问答
             </h1>
             <p className={`mt-1 text-[var(--muted)] ${hasHistory ? "text-[13px]" : "text-sm"}`}>
-              BM25 + 向量混合检索 top-5 → Qwen 依据资料作答 · 逐句标注引用 · 资料不足诚实拒答
+              BM25 + 向量混合检索 top-5 → DeepSeek 依据资料作答 · 逐句标注引用 · 资料不足诚实拒答
             </p>
           </div>
 

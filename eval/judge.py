@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .common import chat_json
 
 GOLD_CHECK_PROMPT = """判断一道题的参考答案是否能由给定资料支持。
@@ -72,7 +74,7 @@ def gold_supported(client, model: str, q: dict, chunk_text: str) -> tuple[bool, 
             question=q["question"],
             answer=q.get("answer") or "",
         ),
-        max_tokens=300,
+        max_tokens=800, judge=True,
     )
     if not obj or not isinstance(obj.get("supported"), bool):
         return False, "parse_fail"
@@ -83,30 +85,35 @@ def unanswerable_check(client, model: str, question: str, hits: list) -> tuple[b
     chunks = "\n\n".join(
         f"[{h.index}] 来源:{h.doc_name} > {h.section_path}\n{h.text[:600]}" for h in hits
     )
-    obj = chat_json(client, model, UNANSWERABLE_CHECK_PROMPT.format(question=question, chunks=chunks), max_tokens=300)
+    obj = chat_json(client, model, UNANSWERABLE_CHECK_PROMPT.format(question=question, chunks=chunks), max_tokens=800, judge=True)
     if not obj or not isinstance(obj.get("answerable"), bool):
         return True, "parse_fail(按可疑丢弃)"  # 复核失败按"语料可能有答案"处理,宁弃勿留
     return obj["answerable"], str(obj.get("reason", ""))[:120]
 
 
 def correctness(client, model: str, question: str, reference: str, answer: str) -> tuple[int, str]:
-    obj = chat_json(
+    from .common import chat_json_text
+
+    obj, raw = chat_json_text(
         client,
         model,
         CORRECTNESS_PROMPT.format(question=question, reference=reference, answer=answer),
-        max_tokens=300,
+        max_tokens=800, judge=True,
     )
-    if not obj:
-        return 0, "parse_fail"
-    score = obj.get("score")
+    score = obj.get("score") if isinstance(obj, dict) else None
     if isinstance(score, bool) or not isinstance(score, int) or not 1 <= score <= 5:
-        return 0, "bad_score"
+        # 兜底:judge 偶尔在 reason 里写未转义双引号导致 JSON 坏掉,
+        # 但 score 字段本身是可信的,用正则在原文里抽(只接受 1~5)
+        m = re.search(r'"score"\s*:\s*([1-5])\b', raw or "")
+        if m:
+            return int(m.group(1)), "regex_fallback"
+        return 0, "parse_fail" if not obj else "bad_score"
     return score, str(obj.get("reason", ""))[:120]
 
 
 def faithfulness_claims(client, model: str, answer: str, cited_texts: list[str]) -> list[dict] | None:
     chunks = "\n\n".join(f"[{i+1}] {t[:800]}" for i, t in enumerate(cited_texts))
-    obj = chat_json(client, model, FAITH_PROMPT.format(chunks=chunks, answer=answer), max_tokens=1200)
+    obj = chat_json(client, model, FAITH_PROMPT.format(chunks=chunks, answer=answer), max_tokens=2000, judge=True)
     if not obj or not isinstance(obj.get("claims"), list) or not obj["claims"]:
         return None
     claims = []

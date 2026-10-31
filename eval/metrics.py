@@ -56,10 +56,14 @@ def summarize(records: list[dict]) -> dict:
     out["误拒率(可答题拒答)"] = round(refused_answerable / len(answerable), 4) if answerable else None
     out["正确拒答率(无法答题)"] = round(refused_unanswerable / len(unanswerable), 4) if unanswerable else None
 
-    out["正确性"] = mean([r["correctness"] for r in answerable if r.get("correctness")])
-    out["正确性_事实"] = mean([r["correctness"] for r in answerable if r["type"] == "fact" and r.get("correctness")])
-    out["正确性_推理"] = mean([r["correctness"] for r in answerable if r["type"] == "reasoning" and r.get("correctness")])
-    out["正确性_无检索对照"] = mean([r["correctness_noctx"] for r in answerable if r.get("correctness_noctx")])
+    out["正确性"] = mean([r["correctness"] for r in answerable if r.get("correctness") is not None])
+    out["正确性_事实"] = mean([r["correctness"] for r in answerable if r["type"] == "fact" and r.get("correctness") is not None])
+    out["正确性_推理"] = mean([r["correctness"] for r in answerable if r["type"] == "reasoning" and r.get("correctness") is not None])
+    out["正确性_无检索对照"] = mean([r["correctness_noctx"] for r in answerable if r.get("correctness_noctx") is not None])
+    # 分母透明化:0 分恰好是 judge 解析失败/越界(1~5 之外),必须计入均值而不是丢弃
+    out["正确性_n"] = sum(1 for r in answerable if r.get("correctness") is not None)
+    out["judge_zero"] = sum(1 for r in answerable if r.get("correctness") == 0)
+    out["judge_missing"] = sum(1 for r in answerable if r.get("correctness") is None)
 
     faith = [faithfulness_score(r.get("faithfulness")) for r in records if not r["refused"]]
     out["faithfulness"] = mean([f for f in faith if f is not None])

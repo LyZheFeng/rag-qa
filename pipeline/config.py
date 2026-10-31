@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     # DeepSeek: {"thinking": {"type": "disabled"}}
     # vLLM/Qwen: {"chat_template_kwargs": {"enable_thinking": false}}
     llm_extra_body: dict = Field(default_factory=dict)
+    # judge(判分)独立配置:留空则回落到上面的生成模型(旧行为)。
+    # 换生成模型时把 judge 固定为历史同一模型,数字才可比。
+    judge_base_url: str = ""
+    judge_api_key: str = ""
+    judge_model: str = ""
+    # judge 专属请求字段:不同模型关思考的参数不一样(DeepSeek 认 thinking,
+    # Qwen/vLLM 认 chat_template_kwargs),留空回落到 llm_extra_body。
+    judge_extra_body: dict = Field(default_factory=dict)
     collection: str = "fastapi_zh_v1"
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
     retriever: Literal["vector", "hybrid", "rerank", "rewrite", "parentchild"] = "hybrid"  # v0.2 定版默认

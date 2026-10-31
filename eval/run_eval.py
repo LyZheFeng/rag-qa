@@ -6,6 +6,8 @@
     python -m eval.run_eval --version v0.2-hybrid --resume eval/runs/v0.2-hybrid_20260910_1200
 
 纪律:temperature=0;子集数字只看趋势,进 README/results.md 的必须全量真实跑出。
+判分模型由 .env 的 JUDGE_MODEL 决定(留空则与生成模型相同);换生成模型时固定 judge,
+正确性/faithfulness 才与历史行可比。
 """
 
 from __future__ import annotations
@@ -15,8 +17,9 @@ import json
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
-from .common import DATA_EVAL, RUNS_DIR, ensure_dirs, get_llm, load_jsonl, utf8_stdout
+from .common import DATA_EVAL, REPO_ROOT, RUNS_DIR, ensure_dirs, get_judge, get_llm, load_jsonl, utf8_stdout
 from .judge import correctness, faithfulness_claims
 from .metrics import summarize
 
@@ -36,7 +39,10 @@ def stratified_limit(questions: list[dict], limit: int) -> list[dict]:
     return out
 
 
-def eval_one(service, client, model: str, q: dict) -> dict:
+def eval_one(service, gen, judge, q: dict) -> dict:
+    """gen 用于作答与无检索对照，judge 只用于打分（两者可以是不同模型）。"""
+    gen_client, gen_model = gen
+    judge_client, judge_model = judge
     t0 = time.perf_counter()
     resp = service.ask(q["question"], k=5)
 
@@ -59,14 +65,14 @@ def eval_one(service, client, model: str, q: dict) -> dict:
     if q["type"] in ("fact", "reasoning"):
         from .common import chat_text
 
-        noctx = chat_text(client, model, NOCTX_PROMPT.format(question=q["question"]))
+        noctx = chat_text(gen_client, gen_model, NOCTX_PROMPT.format(question=q["question"]))
         rec["answer_noctx"] = noctx
-        rec["correctness_noctx"] = correctness(client, model, q["question"], q["answer"], noctx)[0]
-        rec["correctness"] = correctness(client, model, q["question"], q["answer"], resp.answer)[0]
+        rec["correctness_noctx"] = correctness(judge_client, judge_model, q["question"], q["answer"], noctx)[0]
+        rec["correctness"] = correctness(judge_client, judge_model, q["question"], q["answer"], resp.answer)[0]
 
     if not resp.refused:
         cited_texts = [h.text for h in resp.cited]
-        rec["faithfulness"] = faithfulness_claims(client, model, resp.answer, cited_texts) if cited_texts else None
+        rec["faithfulness"] = faithfulness_claims(judge_client, judge_model, resp.answer, cited_texts) if cited_texts else None
     rec["elapsed_s"] = round(time.perf_counter() - t0, 1)
     return rec
 
@@ -89,7 +95,10 @@ def main() -> None:
         return 1
 
     if args.resume:
-        run_dir = RUNS_DIR / args.resume
+        cand = Path(args.resume)
+        if not cand.is_absolute():
+            cand = REPO_ROOT / cand
+        run_dir = cand if cand.exists() else RUNS_DIR / args.resume
     else:
         run_dir = RUNS_DIR / f"{args.version}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -102,12 +111,29 @@ def main() -> None:
     from app.service import get_service
 
     service = get_service()
-    client, model = get_llm()
+    gen = get_llm()
+    judge = get_judge()
+    print(f"生成模型 {gen[1]} | judge {judge[1]}", flush=True)
 
     f = open(records_path, "a", encoding="utf-8")
     t0 = time.time()
     for i, q in enumerate(todo, 1):
-        rec = eval_one(service, client, model, q)
+        rec = None
+        for attempt in (1, 2, 3):  # 单题失败不拖垮整轮:退避重试
+            try:
+                rec = eval_one(service, gen, judge, q)
+                break
+            except Exception as e:  # noqa: BLE001 —— 网络/限流/单题异常
+                print(f"[{i}/{len(todo)}] {q['qid']} 第 {attempt} 次失败:{type(e).__name__}: {e}", flush=True)
+                time.sleep(5 * attempt)
+        if rec is None:  # 三次仍失败:记错误继续跑,汇总里看得到
+            rec = {
+                "qid": q["qid"], "type": q["type"], "question": q["question"],
+                "refused": False, "answer": "", "retrieved_ids": [], "retrieved_docs": [],
+                "gold_chunk_id": q.get("gold_chunk_id"), "gold_doc": q.get("gold_doc"),
+                "retrieve_ms": 0, "generate_ms": 0, "parse_mode": "error", "cited_ids": [],
+                "error": "eval_failed_after_retries",
+            }
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         f.flush()
         speed = (time.time() - t0) / i
@@ -118,7 +144,14 @@ def main() -> None:
 
     records = load_jsonl(records_path)
     records = [r for r in records if r["qid"] in {q["qid"] for q in questions}]
-    summary = {"version": args.version, "limit": args.limit or "full", **summarize(records)}
+    summary = {
+        "version": args.version,
+        "limit": args.limit or "full",
+        "llm_model": gen[1],
+        "judge_model": judge[1],
+        "errors": sum(1 for r in records if r.get("error")),
+        **summarize(records),
+    }
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print("\n" + json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
