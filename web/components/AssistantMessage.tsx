@@ -6,10 +6,11 @@ import type { AskResponse, Hit } from "@/lib/types";
 
 // 单条助手消息的呈现状态机：
 //   retrieving → streaming（sources 已到，delta 逐段追加）→ done（权威终态）| error
-// done 前的显示都是临时的；retry 事件清空已显示文本并提示重试中。
+// done 前的显示都是临时的；retry 事件清空已显示文本，并把后端给的原因显示出来
+// （格式重试 / 扩大检索重答 / 改写问题重答）。
 export type AssistantState =
   | { phase: "retrieving" }
-  | { phase: "streaming"; text: string; hits: Hit[]; retrying: boolean }
+  | { phase: "streaming"; text: string; hits: Hit[]; retrying: string | null }
   | { phase: "done"; resp: AskResponse }
   | { phase: "error"; message: string; retryQuestion: string };
 
@@ -90,7 +91,7 @@ export default function AssistantMessage({
     return (
       <div>
         <Chip tone="acc">已检索 {state.hits.length} 条资料</Chip>
-        {state.retrying && <span className="ml-2 align-middle"><Chip tone="warn">输出格式异常 · 正在重试</Chip></span>}
+        {state.retrying && <span className="ml-2 align-middle"><Chip tone="warn">{state.retrying}</Chip></span>}
         <div className="mt-2">
           {state.text ? (
             <>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import AssistantMessage, { type AssistantState } from "@/components/AssistantMessage";
 import Sidebar from "@/components/Sidebar";
 import { streamSse } from "@/lib/sse";
-import type { AskResponse, DeltaPayload, ErrorPayload, SourcesPayload } from "@/lib/types";
+import type { AskResponse, DeltaPayload, ErrorPayload, RetryPayload, SourcesPayload } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
 
@@ -123,15 +123,16 @@ export default function Home() {
         (event, data) => {
           if (event === "sources") {
             const { hits } = data as SourcesPayload;
-            patchLast(() => ({ phase: "streaming", text: "", hits, retrying: false }));
+            patchLast(() => ({ phase: "streaming", text: "", hits, retrying: null }));
           } else if (event === "delta") {
             const { text } = data as DeltaPayload;
             patchLast((s) =>
-              s.phase === "streaming" ? { ...s, text: s.text + text, retrying: false } : s,
+              s.phase === "streaming" ? { ...s, text: s.text + text, retrying: null } : s,
             );
           } else if (event === "retry") {
+            const { message } = data as RetryPayload;
             patchLast((s) =>
-              s.phase === "streaming" ? { ...s, text: "", retrying: true } : s,
+              s.phase === "streaming" ? { ...s, text: "", retrying: message } : s,
             );
           } else if (event === "done") {
             patchLast(() => ({ phase: "done", resp: data as AskResponse }));
