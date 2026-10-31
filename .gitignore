@@ -16,8 +16,15 @@ data/chroma/
 data/cache/
 models/
 
-# 评估产物中间文件
-eval/runs/
+# 切块对比实验产物（v0.5 对比用，不入库；现役索引只需 chunks.jsonl）
+data/chunks/chunks_fixed.jsonl
+data/chunks/chunks_pc*.jsonl
+
+# 评估产物:只入库 summary.json(可复算),原始 records / 日志 / 检索中间件不入库
+eval/runs/*/records.jsonl
+eval/runs/retrieval_check/
+eval/runs/*.log
+eval/runs/pilot*/
 
 # IDE / 系统
 .idea/
