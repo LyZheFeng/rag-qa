@@ -26,7 +26,7 @@
 - 报告已写入 `eval/results-deepseek.md`「安全作答率回填」节。
 - 单测 112 通过。
 
-## B：推理题 prompt（进行中）
+## B：推理题 prompt（已完成并采纳）
 
 - 动机：`reas-005` 的 gold 在 k=20 第 8 名、`reas-027` 在第 1 名，模型仍拒/答错 → 不敢推断，不是检索问题。
 - 改动：`app/generator.py::SYSTEM_PROMPT` 规则 2 允许"所需事实齐全、仅结论需对比/归纳"时作答并标注推断；
@@ -40,19 +40,27 @@
   `fact-082` 1→4、`fact-079` 1.33→4.67、`reas-015/027` +1.33；变差 `fact-025` 5→3、
   `fact-094` 5→3.67、`reas-059` 3.33→2。
   代价：faithfulness 0.9708 → **0.9508**（-2.0pp，推断性表述被判"无依据声明"）、延迟 +0.11s。
-  已提交（本地），结果待写入 results-deepseek.md 的 B 节。
+  已提交（本地）；结果已写入 results-deepseek.md 的 B 节。
 
-## C：定向改写（实现完成，待验证）
+## C：定向改写（已完成并采纳）
 
 - 事实：`fact-049` 的 gold 不在 k=20 内（唯一真检索漏）；`reas-005`/`reas-027` 不属于检索问题。
 - 探针结果（2026-10-31 18:50）：手工改写 2 条后 gold 排到 **第 2 名**（rewrite3 第 6）；
   但把改写结果与原查询做 RRF 融合后 gold 又掉出 20（原查询占满高位）→ **不能融合**，
   改为"改写 top10 + 原命中 top10 去重合并"。
-- 实现（默认关，`RETRY_REWRITE=false`）：`retry_rewrite` 配置；`LLMGenerator.rewrite_query`；
-  `RagService` 第三段（两次都拒 → 改写 → k=20 检索 → 合并 → 第三次作答），命中集重排 1..N；
-  流式事件序 `retry → sources → delta*` 再来一轮；`AskResponse.rewritten` 记录是否触发。
+- 实现（`RETRY_REWRITE`，默认开）：`LLMGenerator.rewrite_query`；`RagService` 第三段
+  （两次都拒 → 改写 → k=20 检索 → 合并 → 第三次作答），命中集重排 1..N；流式事件序
+  `retry → sources → delta*` 再来一轮；`AskResponse.rewritten` 记录是否触发。
 - 单测：新增 6 例（改写成功/关闭/改写无变化/改写异常/流式事件序/合并去重编号），全库 118 通过。
-- 验证顺序：先 50 题冒烟看无法回答题，再 200×3。该段会作用于 38~40 道无法回答题，重点看正确拒答/安全率。
+- 冒烟（20:56）：改写触发 11/50；误拒 0/40；`reas-005` 答出 3 分；无法回答题 9/10 拒答
+  （`unans-008` 改写后作答、判 safe）。
+- **正式 200×3（23:10-23:54 完成，含 21:07 暂停续跑）：达标并采纳**
+  正确性 **4.7667 ± 0.0164**、误拒 **0.00%（0/160，三轮都是 0）**、正确拒答 **97.50% ± 2.04pp**、
+  安全率 **100%**、faithfulness 0.9460 ± 0.0029、平均延迟 **2.20s**（改写触发 42/42/41 次）。
+  `fact-049` 三轮都靠改写拿 5 分；`reas-005` 3/3/4 分；被改写的无法回答题（`unans-006/008`）全部 safe。
+  对比 B（仅推理 prompt）：正确性 +0.05、误拒 −1.04pp，代价延迟 +0.57s、正确拒答 −1.67pp。
+  口径注意：C 的 recall@5 0.8375 是合并列表的前 5，不可与前几版直接比；`fact-079` 的 4.67→1.00
+  是首轮直接答错（未拒、未进改写），属首轮行为波动，不是改写造成的。
 
 ## D：低置信度触发（负结果，不做）
 
@@ -70,6 +78,30 @@
   低分答案（11 条/轮）与高分答案的 top1（0.964 vs 0.981）、引用最高分（0.913 vs 0.923）、
   答案长度都没有可分开的阈值；`fact-079` 引用 0.968 的高分 chunk 仍然答错。
 - **结论：所有候选规则都远达不到"每轮≤5 题且≥60% 为低分题"的门槛，D 不实装**，只记录负结果。
+
+## 中断与恢复（2026-10-31 21:07）
+
+用户要求 23:00 后再继续，C 的三轮验证在 **r1 44/200** 处暂停，已完成记录保留在
+`eval/runs/v0.9-rewrite-r1_20261031_205650/records.jsonl`（run_eval 支持 --resume 跳过已完成题）。
+
+恢复步骤：
+
+```powershell
+cd D:\LLM_training\rag-qa
+$env:RETRY_REWRITE='true'
+# 1) 续跑 r1（只补未完成的 156 题）
+.\.venv\Scripts\python.exe -u -X utf8 -m eval.run_eval --version v0.9-rewrite-r1 --resume eval\runs\v0.9-rewrite-r1_20261031_205650
+# 2) r2 / r3 正常新目录跑
+.\.venv\Scripts\python.exe -u -X utf8 -m eval.run_eval --version v0.9-rewrite-r2
+.\.venv\Scripts\python.exe -u -X utf8 -m eval.run_eval --version v0.9-rewrite-r3
+# 3) 汇总与判定
+.\.venv\Scripts\python.exe -X utf8 -m eval.aggregate v0.9-rewrite
+.\.venv\Scripts\python.exe -X utf8 -m eval.compare v0.9-inference v0.9-rewrite
+```
+
+已提交（本地，未推送）：`3fa0289`（A）、`2c677a2`（B + C 开关 + 汇总脚本）。
+C 判定线：误拒 ≤1.25%、正确性 ≥4.61、正确拒答 ≥94%、安全率 ≥97.5%；不达标则保持
+`RETRY_REWRITE=false` 并记录负结果。D 已确认负结果、不实装。
 
 ## 环境与命令
 
