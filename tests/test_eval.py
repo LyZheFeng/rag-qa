@@ -106,6 +106,38 @@ def test_record_run_finished_at_uses_records_mtime(tmp_path):
     assert _finished_at(run_dir).strftime("%Y-%m-%d %H:%M") == "2026-01-02 03:04"
 
 
+def test_summarize_safe_rate_uses_judge_flags():
+    """安全口径：refused 或 judge 判 safe 都算安全；原「正确拒答率」保持不动。"""
+    s = summarize([
+        _rec(type="unanswerable", refused=True, gold_chunk_id=None, gold_doc=None,
+             correctness=None, correctness_noctx=None, unanswerable_safe=True),
+        _rec(type="unanswerable", refused=False, gold_chunk_id=None, gold_doc=None,
+             correctness=None, correctness_noctx=None, unanswerable_safe=True),
+        _rec(type="unanswerable", refused=False, gold_chunk_id=None, gold_doc=None,
+             correctness=None, correctness_noctx=None, unanswerable_safe=False),
+    ])
+    assert s["正确拒答率(无法答题)"] == round(1 / 3, 4)
+    assert s["安全作答率(无法答题)"] == round(2 / 3, 4)
+    assert s["安全作答率_n"] == 3
+
+
+def test_summarize_safe_rate_absent_is_none():
+    # 旧 run 没有 unanswerable_safe 字段时，安全率显示为空而不是假装 100%
+    s = summarize([_rec(type="unanswerable", refused=True, gold_chunk_id=None, gold_doc=None,
+                        correctness=None, correctness_noctx=None)])
+    assert s["安全作答率(无法答题)"] is None
+    assert s["安全作答率_n"] == 0
+
+
+def test_unanswerable_judge_prompt_renders_question_answer_and_evidence():
+    from eval.common import UNANSWERABLE_JUDGE_PROMPT
+
+    p = UNANSWERABLE_JUDGE_PROMPT.format(question="问句?", answer="回答!", evidence="[1] 资料原文")
+    assert "问句?" in p and "回答!" in p and "[1] 资料原文" in p
+    assert '{"safe": true' in p  # 双花括号已正确转义
+    assert "不要用你自己的版本知识" in p  # 必须只依据引用资料判依据
+
+
 def test_summarize_refused_excluded_from_faithfulness():
     s = summarize([_rec(refused=True, faithfulness=None)])
     assert s["faithfulness_n"] == 0

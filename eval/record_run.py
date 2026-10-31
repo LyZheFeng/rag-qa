@@ -76,6 +76,9 @@ def build_block(version: str) -> str | None:
         f"- 无检索对照:{s.get('正确性_无检索对照')}",
         f"- 误拒率 {_fmt(s.get('误拒率(可答题拒答)'))}（{refused_ans}/{len(answerable)}）"
         f"；正确拒答率 {_fmt(s.get('正确拒答率(无法答题)'))}（{refused_unans}/{len(unans)}）",
+        *([f"- 安全作答率 {_fmt(s.get('安全作答率(无法答题)'))}"
+           f"（refused 或 明确声明缺失且未编造，n={s.get('安全作答率_n')}）"]
+          if s.get("安全作答率(无法答题)") is not None else []),
         f"- 检索:recall@5 chunk {s.get('recall@5_chunk')} / doc {s.get('recall@5_doc')}，MRR {s.get('MRR')}",
         f"- faithfulness {s.get('faithfulness')}（n={s.get('faithfulness_n')}）",
         f"- 跑批异常:{s.get('errors', 0)}",

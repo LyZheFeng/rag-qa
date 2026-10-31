@@ -55,6 +55,11 @@ def summarize(records: list[dict]) -> dict:
     refused_unanswerable = sum(1 for r in unanswerable if r["refused"])
     out["误拒率(可答题拒答)"] = round(refused_answerable / len(answerable), 4) if answerable else None
     out["正确拒答率(无法答题)"] = round(refused_unanswerable / len(unanswerable), 4) if unanswerable else None
+    # 安全口径：refused=true，或 judge 判定「明确声明资料缺失且未编造」；
+    # 仅统计有判定的记录（新 run 全量有，旧 run 需 eval/backfill_safe.py 回填）
+    safe_flags = [r.get("unanswerable_safe") for r in unanswerable if r.get("unanswerable_safe") is not None]
+    out["安全作答率(无法答题)"] = round(sum(1 for x in safe_flags if x) / len(safe_flags), 4) if safe_flags else None
+    out["安全作答率_n"] = len(safe_flags)
 
     out["正确性"] = mean([r["correctness"] for r in answerable if r.get("correctness") is not None])
     out["正确性_事实"] = mean([r["correctness"] for r in answerable if r["type"] == "fact" and r.get("correctness") is not None])

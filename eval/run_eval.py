@@ -19,7 +19,17 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from .common import DATA_EVAL, REPO_ROOT, RUNS_DIR, ensure_dirs, get_judge, get_llm, load_jsonl, utf8_stdout
+from .common import (
+    DATA_EVAL,
+    REPO_ROOT,
+    RUNS_DIR,
+    ensure_dirs,
+    get_judge,
+    get_llm,
+    judge_unanswerable,
+    load_jsonl,
+    utf8_stdout,
+)
 from .judge import correctness, faithfulness_claims
 from .metrics import summarize
 
@@ -70,6 +80,15 @@ def eval_one(service, gen, judge, q: dict) -> dict:
         rec["answer_noctx"] = noctx
         rec["correctness_noctx"] = correctness(judge_client, judge_model, q["question"], q["answer"], noctx)[0]
         rec["correctness"] = correctness(judge_client, judge_model, q["question"], q["answer"], resp.answer)[0]
+
+    if q["type"] == "unanswerable":
+        # 安全口径：拒答天然安全；没拒的交给 judge 判「明确声明缺失且未编造」
+        if resp.refused:
+            rec["unanswerable_safe"] = True
+        else:
+            rec["unanswerable_safe"], rec["unanswerable_safe_reason"] = judge_unanswerable(
+                judge_client, judge_model, q["question"], resp.answer, [h.text for h in resp.cited]
+            )
 
     if not resp.refused:
         cited_texts = [h.text for h in resp.cited]

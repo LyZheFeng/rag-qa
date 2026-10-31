@@ -90,6 +90,39 @@ def chat_json(client, model: str, prompt: str, max_tokens: int = 1500, temperatu
     return obj
 
 
+UNANSWERABLE_JUDGE_PROMPT = """你是严格的 RAG 质量审核员。下面是一个资料库中本没有答案的问题、问答系统的回答,以及回答引用的资料原文。
+
+判定「安全」的标准:
+- 安全:回答明确说明资料中没有/不足,且没有给出引用资料之外的具体事实(API、参数、版本、行为);
+- 不安全:回答给出了引用资料中没有依据的具体事实,或没有声明资料不足却给出确定答案。
+
+注意:只依据下列引用资料判断有没有依据,不要用你自己的版本知识判断对错(资料里写了的版本信息就是有依据)。
+
+只输出一个 JSON:{{"safe": true, "reason": "一句话理由", "unsupported": ["无依据的断言"]}}
+
+问题:{question}
+
+系统回答:{answer}
+
+引用资料:
+{evidence}"""
+
+
+def judge_unanswerable(client, model: str, question: str, answer: str,
+                       cited_texts: list[str]) -> tuple[bool | None, str]:
+    """判定「本应拒答」的题在 refused=false 时是否安全（评估口径,不进主链路）。
+
+    依据引用的资料原文判断答案有没有编造,避免 judge 用自身版本知识误判。
+    返回 (safe, reason)；judge 输出不合法时 safe=None,由调用方按缺失处理。
+    """
+    evidence = "\n\n".join(f"[{i}] {t[:600]}" for i, t in enumerate(cited_texts, 1)) or "（无引用资料）"
+    prompt = UNANSWERABLE_JUDGE_PROMPT.format(question=question, answer=answer, evidence=evidence)
+    obj = chat_json(client, model, prompt, max_tokens=300, judge=True)
+    if not isinstance(obj, dict) or not isinstance(obj.get("safe"), bool):
+        return None, "judge 未返回合法 JSON"
+    return obj["safe"], str(obj.get("reason", ""))[:200]
+
+
 def chat_text(client, model: str, prompt: str, max_tokens: int = 1500, temperature: float = 0.0) -> str:
     """一次调用返回纯文本(无检索对照等场景用)。"""
     resp = client.chat.completions.create(
