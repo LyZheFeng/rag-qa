@@ -21,6 +21,7 @@ export interface AskResponse {
   answer: string;
   refused: boolean;
   retried: boolean; // 是否触发了拒答后的二次检索
+  rewritten: boolean; // 是否触发了定向改写后的第三次检索
   parse_mode: ParseMode;
   cited: Hit[];
   retrieved: Hit[];

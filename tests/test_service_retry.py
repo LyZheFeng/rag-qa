@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.generator import StreamItem
 from app.schemas import AnswerSpec, Hit
-from app.service import RETRY_MESSAGE, RagService
+from app.service import RETRY_MESSAGE, REWRITE_MESSAGE, RagService
 
 
 def hits(n: int) -> list[Hit]:
@@ -268,3 +268,130 @@ def test_api_ask_exposes_retried_flag():
     assert body["retried"] is True
     assert body["refused"] is False
     assert len(body["retrieved"]) == 20
+
+
+# ---------- 定向改写兜底（v0.9 实验开关，默认关） ----------
+
+
+class RoutingRetriever:
+    """按 query 返回不同命中（模拟改写后检索到新资料），记录每次 (query, k)。"""
+
+    def __init__(self, by_query: dict[str, list[Hit]]):
+        self.by_query = by_query
+        self.calls: list[tuple[str, int]] = []
+
+    def retrieve(self, question: str, k: int = 5) -> list[Hit]:
+        self.calls.append((question, k))
+        return self.by_query.get(question, [])[:k]
+
+
+class RewriteGenerator(ScriptedGenerator):
+    def __init__(self, specs: list[AnswerSpec], rewritten: str):
+        super().__init__(specs)
+        self.rewritten = rewritten
+
+    def rewrite_query(self, question: str) -> str:
+        return self.rewritten
+
+
+class StreamRewriteGenerator(ScriptedStreamGenerator):
+    def __init__(self, specs: list[AnswerSpec], rewritten: str):
+        super().__init__(specs)
+        self.rewritten = rewritten
+
+    def rewrite_query(self, question: str) -> str:
+        return self.rewritten
+
+
+Q1 = "如何声明请求体"
+Q2 = "FastAPI 用 BaseModel 声明请求体 Request Body"
+
+
+def test_ask_rewrite_stage_answers_when_rewrite_finds_more():
+    pool = hits(20)
+    retriever = RoutingRetriever({Q1: pool, Q2: pool})
+    gen = RewriteGenerator([REFUSE_1, REFUSE_2, ANSWER_2], rewritten=Q2)
+    svc = RagService(retriever, gen, retry_k=20, retry_rewrite=True)
+
+    resp = svc.ask(Q1, k=5)
+
+    assert [c[0] for c in retriever.calls] == [Q1, Q1, Q2]
+    assert [c[1] for c in retriever.calls] == [5, 20, 20]
+    assert gen.calls == [5, 20, 10]  # 首轮 5、二次 20、改写合并 10
+    assert resp.retried is True and resp.rewritten is True
+    assert resp.refused is False
+    assert resp.answer == ANSWER_2.answer
+    # 合并集重排 1..N，引用 [2] 落在第二段
+    assert resp.retrieved[1].chunk_id == pool[1].chunk_id
+    assert [h.index for h in resp.retrieved] == list(range(1, len(resp.retrieved) + 1))
+    assert resp.cited[0].chunk_id == pool[1].chunk_id
+
+
+def test_rewrite_disabled_by_default():
+    pool = hits(20)
+    retriever = RoutingRetriever({Q1: pool, Q2: pool})
+    gen = RewriteGenerator([REFUSE_1, REFUSE_2], rewritten=Q2)
+    svc = RagService(retriever, gen, retry_k=20)  # retry_rewrite 默认 False
+
+    resp = svc.ask(Q1, k=5)
+
+    assert [c[0] for c in retriever.calls] == [Q1, Q1]
+    assert resp.rewritten is False
+    assert resp.refused is True
+
+
+def test_rewrite_skipped_when_query_unchanged():
+    pool = hits(20)
+    retriever = RoutingRetriever({Q1: pool})
+    gen = RewriteGenerator([REFUSE_1, REFUSE_2], rewritten=Q1)  # 改写没变化
+    svc = RagService(retriever, gen, retry_k=20, retry_rewrite=True)
+
+    resp = svc.ask(Q1, k=5)
+
+    assert [c[0] for c in retriever.calls] == [Q1, Q1]
+    assert resp.rewritten is False
+    assert resp.refused is True
+
+
+def test_rewrite_failure_is_skipped():
+    class BoomRewriteGenerator(RewriteGenerator):
+        def rewrite_query(self, question: str) -> str:
+            raise RuntimeError("LLM 断连")
+
+    pool = hits(20)
+    retriever = RoutingRetriever({Q1: pool})
+    gen = BoomRewriteGenerator([REFUSE_1, REFUSE_2], rewritten=Q2)
+    svc = RagService(retriever, gen, retry_k=20, retry_rewrite=True)
+
+    resp = svc.ask(Q1, k=5)  # 不抛异常，按首轮拒答返回
+
+    assert resp.rewritten is False
+    assert resp.refused is True
+
+
+def test_stream_rewrite_stage_event_order():
+    pool = hits(20)
+    retriever = RoutingRetriever({Q1: pool, Q2: pool})
+    gen = StreamRewriteGenerator([REFUSE_1, REFUSE_2, ANSWER_2], rewritten=Q2)
+    svc = RagService(retriever, gen, retry_k=20, retry_rewrite=True)
+
+    events = list(svc.ask_stream(Q1, k=5))
+
+    assert _names(events) == [
+        "sources", "delta", "retry", "sources", "delta", "retry", "sources", "delta", "done"
+    ]
+    assert events[5][1]["message"] == REWRITE_MESSAGE
+    done = events[-1][1]
+    assert done["retried"] is True and done["rewritten"] is True
+    assert done["refused"] is False
+
+
+def test_merge_hits_dedupes_and_renumbers():
+    from app.service import _has_new, _merge_hits
+
+    primary, secondary = hits(3), hits(5)
+    merged = _merge_hits(primary, secondary, 4)
+    assert [h.index for h in merged] == [1, 2, 3, 4]
+    assert [h.chunk_id for h in merged] == [h.chunk_id for h in primary] + [secondary[3].chunk_id]
+    assert _has_new(merged, primary) is True
+    assert _has_new(primary, primary) is False

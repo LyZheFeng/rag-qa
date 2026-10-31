@@ -23,15 +23,25 @@ SYSTEM_PROMPT = """你是 FastAPI 中文文档的问答助手，只依据用户�
 
 规则：
 1. 优先依据资料回答，答案中在对应句子末尾标注资料编号，如 [1] 或 [2][3]；代码示例直接保留资料中的代码。
-2. 资料不足以回答问题时必须拒答：refused=true，answer 用一两句话说明缺少什么信息，citations 为空数组。禁止编造。
-3. 只输出一个 JSON 对象，禁止输出任何其他文字、解释或代码围栏：
+2. 资料覆盖了回答问题所需的全部事实、只是结论需要一步对比或归纳时（例如"两者的区别""为什么这样设计"），
+   应据此作答，并用"据此推断""可以认为"等措辞标明这是推断；不要以"资料未明确说明"为由拒答。
+3. 若用户询问的具体信息（具体写法、参数、步骤、版本行为、库名等）在资料中不存在，即使资料有相邻或相关
+   的说明，也必须拒答：refused=true，answer 用一两句话说明缺少什么信息，citations 为空数组。禁止编造。
+4. 只输出一个 JSON 对象，禁止输出任何其他文字、解释或代码围栏：
    {"answer": "...", "citations": [1, 2], "refused": false}
-4. citations 只包含 answer 实际用到的资料编号（1 起的整数）。"""
+5. citations 只包含 answer 实际用到的资料编号（1 起的整数）。"""
 
 RETRY_PROMPT = (
     "你上一次的输出不是合法的单个 JSON 对象。请重新作答，"
     '只输出一个 JSON：{"answer": "...", "citations": [编号列表], "refused": 布尔值}，不要包含任何其他文字。'
 )
+
+REWRITE_PROMPT = """把下面的问题改写成一句更适合在 FastAPI 中文文档中检索的查询。
+
+要求：保留原意；补上官方术语或英文 API 名（问题里是通俗说法时）；不要回答问题、不要解释。
+只输出改写后的一行查询。
+
+问题：{question}"""
 
 MAX_TOKENS = 1500
 
@@ -222,6 +232,14 @@ class LLMGenerator:
         if spec.refused:
             spec.citations = []
         return spec
+
+    def rewrite_query(self, question: str) -> str:
+        """把问题改写成检索友好的查询（定向改写兜底用；与作答走同一条 LLM 通道）。"""
+        raw = self._chat(
+            [{"role": "user", "content": REWRITE_PROMPT.format(question=question)}]
+        )
+        lines = [ln.strip() for ln in (raw or "").splitlines() if ln.strip()]
+        return (lines[0] if lines else "")[:200]
 
     def generate(self, question: str, hits: list[Hit]) -> GenerationOutcome:
         k = len(hits)

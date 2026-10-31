@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # v0.7 误拒兜底:首轮 refused=true 时按 retry_k 重新检索、扩大上下文后重答一次。
     # 0=关闭。hybrid 内部本就召回 hybrid_candidates 条再融合,加深 k 不增加检索耗时。
     retry_k: int = Field(default=20, ge=0)
+    # v0.9 定向改写兜底(实验):两次都拒时让 LLM 改写问题再检索一次;默认关,验证通过才开。
+    retry_rewrite: bool = False
 
     @model_validator(mode="after")
     def _check_retry_depth(self) -> "Settings":
