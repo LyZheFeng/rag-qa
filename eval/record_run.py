@@ -34,6 +34,18 @@ def _fmt(rate: float | None) -> str:
     return "—" if rate is None else f"{rate:.1%}"
 
 
+def _finished_at(run_dir: Path):
+    """实际完成时间:以 records.jsonl 最后写入为准。
+
+    record_run 可能事后补跑(两轮一起记账),用 datetime.now() 会把完成时间记成记账时间。
+    """
+    for name in ("records.jsonl", "summary.json"):
+        p = run_dir / name
+        if p.exists():
+            return datetime.fromtimestamp(p.stat().st_mtime)
+    return datetime.now()
+
+
 def build_block(version: str) -> str | None:
     dirs = sorted(RUNS.glob(f"{version}_*"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not dirs:
@@ -56,7 +68,7 @@ def build_block(version: str) -> str | None:
         f"## {version}",
         "",
         f"- 运行目录:`{run_dir.name}`",
-        f"- 完成时间:{datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"- 完成时间:{_finished_at(run_dir).strftime('%Y-%m-%d %H:%M')}",
         f"- 模型:生成 `{s.get('llm_model', '—')}` / 判分 `{s.get('judge_model', '—')}`",
         f"- 样本:{s.get('n')} 题（可答 {len(answerable)} / 无法回答 {len(unans)}）",
         f"- **正确性 {s.get('正确性')}**（事实 {s.get('正确性_事实')} / 推理 {s.get('正确性_推理')}）"

@@ -28,13 +28,29 @@ def test_hybrid_candidates_below_api_max_k_rejected():
     # 候选深度小于 API k 上限会融合出不足 k 条,启动即拦
     with pytest.raises(Exception):
         Settings(hybrid_candidates=API_MAX_K - 1)
-    Settings(hybrid_candidates=API_MAX_K)  # 边界值放行
+    Settings(hybrid_candidates=API_MAX_K, retry_k=API_MAX_K)  # 边界值放行
+
+
+def test_retry_k_deeper_than_candidates_rejected():
+    # 二次检索比融合候选池还深 = 静默降级,启动即拦
+    with pytest.raises(Exception, match="RETRY_K"):
+        Settings(retry_k=30)  # 默认候选 20
+    Settings(retriever="vector", retry_k=30)  # 纯向量直接查库,不看融合候选池
+    Settings(retry_k=0)  # 关闭兜底永远合法
 
 
 def test_rrf_k_must_be_positive():
     with pytest.raises(Exception):
         Settings(rrf_k=0)
     Settings(rrf_k=1)
+
+
+def test_retry_k_default_and_bounds():
+    # 默认 20（与 P0 方案一致）；0 表示关闭；负数启动即拦
+    assert Settings(_env_file=None).retry_k == 20
+    assert Settings(retry_k=0).retry_k == 0
+    with pytest.raises(Exception):
+        Settings(retry_k=-1)
 
 
 def test_real_env_loads_cleanly():

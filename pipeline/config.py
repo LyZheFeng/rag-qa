@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +41,19 @@ class Settings(BaseSettings):
     retriever: Literal["vector", "hybrid", "rerank", "rewrite", "parentchild"] = "hybrid"  # v0.2 定版默认
     hybrid_candidates: int = Field(default=20, ge=API_MAX_K)  # hybrid 每路召回深度
     rrf_k: int = Field(default=60, ge=1)  # RRF 融合常数
+    # v0.7 误拒兜底:首轮 refused=true 时按 retry_k 重新检索、扩大上下文后重答一次。
+    # 0=关闭。hybrid 内部本就召回 hybrid_candidates 条再融合,加深 k 不增加检索耗时。
+    retry_k: int = Field(default=20, ge=0)
+
+    @model_validator(mode="after")
+    def _check_retry_depth(self) -> "Settings":
+        # 二次检索只能拿到融合候选池里的条目；比候选池还深等于静默降级
+        if self.retriever != "vector" and self.retry_k > self.hybrid_candidates:
+            raise ValueError(
+                f"RETRY_K({self.retry_k}) 大于 HYBRID_CANDIDATES({self.hybrid_candidates})："
+                "二次检索拿不到更深的命中，请调大候选深度或调小 RETRY_K"
+            )
+        return self
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"  # 逗号分隔，本地前端开发端口
 
     model_config = {"env_file": REPO_ROOT / ".env", "extra": "ignore"}

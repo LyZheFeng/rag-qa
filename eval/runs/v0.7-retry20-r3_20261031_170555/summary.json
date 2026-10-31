@@ -1,0 +1,22 @@
+{
+  "version": "v0.7-retry20-r3",
+  "limit": "full",
+  "llm_model": "deepseek-v4.1-flash-1017",
+  "judge_model": "qwen3.8-27b",
+  "errors": 0,
+  "n": 200,
+  "recall@5_chunk": 0.8313,
+  "recall@5_doc": 0.9437,
+  "MRR": 0.6477,
+  "误拒率(可答题拒答)": 0.0125,
+  "正确拒答率(无法答题)": 0.95,
+  "正确性": 4.6063,
+  "正确性_事实": 4.78,
+  "正确性_推理": 4.3167,
+  "正确性_无检索对照": 4.2687,
+  "正确性_n": 160,
+  "judge_zero": 0,
+  "judge_missing": 0,
+  "faithfulness": 0.9699,
+  "faithfulness_n": 160
+}

@@ -88,6 +88,24 @@ def test_summarize_full_picture():
     assert s["faithfulness_n"] == 1
 
 
+def test_record_run_finished_at_uses_records_mtime(tmp_path):
+    """完成时间取 records.jsonl 最后写入；record_run 事后补跑不会把时间记成记账时刻。"""
+    import os
+    from datetime import datetime
+
+    from eval.record_run import _finished_at
+
+    run_dir = tmp_path / "v0.1-x_20260101_000000"
+    run_dir.mkdir()
+    assert _finished_at(run_dir).year >= 2026  # 无记录文件时退回 now
+
+    rec = run_dir / "records.jsonl"
+    rec.write_text("{}\n", encoding="utf-8")
+    ts = datetime(2026, 1, 2, 3, 4).timestamp()
+    os.utime(rec, (ts, ts))
+    assert _finished_at(run_dir).strftime("%Y-%m-%d %H:%M") == "2026-01-02 03:04"
+
+
 def test_summarize_refused_excluded_from_faithfulness():
     s = summarize([_rec(refused=True, faithfulness=None)])
     assert s["faithfulness_n"] == 0

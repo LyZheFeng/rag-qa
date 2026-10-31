@@ -20,6 +20,7 @@ export interface AskResponse {
   question: string;
   answer: string;
   refused: boolean;
+  retried: boolean; // 是否触发了拒答后的二次检索
   parse_mode: ParseMode;
   cited: Hit[];
   retrieved: Hit[];

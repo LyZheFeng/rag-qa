@@ -5,8 +5,10 @@ LLM 依据资料作答并逐句标注引用,资料不足时诚实拒答而非编
 
 > Agent 应用开发备考 · 项目 1(对应 `agent-internship-plan.md` Week 1~2)
 
-**最终版本 v0.2-hybrid**:正确性 4.41/5(judge 评分,经独立模型盲评验证)、误拒率 7.5%、
-无法回答题正确拒答率 100%、答案忠实度 96%。
+**最终版本 v0.7-retry20**:200 题 × 3 轮全量实测,正确性 4.61/5、误拒率 1.25%、
+无法回答题正确拒答率 95.0%、faithfulness 97.1%,平均端到端 1.51s/题。
+生成 DeepSeek-V4.1-Flash,判分固定 qwen3.8-27b;逐轮记录见
+[`eval/results-deepseek.md`](eval/results-deepseek.md)。
 
 ## 架构
 
@@ -73,13 +75,26 @@ Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,�
 
 ## 版本演进与评估(200 题全量真实跑批)
 
+### Qwen 答题 / Qwen 判题(v0.1~v0.5)
+
 | 版本 | 正确性 | 误拒率 | 正确拒答率 | chunk recall@5 | 延迟代价 | 判决 |
 |---|---|---|---|---|---|---|
 | v0.1-baseline 纯向量 | 3.92 | 18.1% | 97.5% | 64.4% | — | 基线 |
-| **v0.2-hybrid BM25+RRF** | **4.41** | **7.5%** | **100%** | **83.1%** | +0.1s | **✅ 定版** |
+| **v0.2-hybrid BM25+RRF** | **4.41** | **7.5%** | **100%** | **83.1%** | +0.1s | Qwen 时代定版 |
 | v0.3-rerank CrossEncoder 精排 | 4.49 | 5.6% | 97.5% | 90.0% | +6.3s/题 | CPU 不划算,留 GPU 场景 |
 | v0.4-rewrite 多查询扩展 | —(检索层出局) | — | — | 74.4% | +1.8s/题 | 变体共识稀释排序,负结果 |
 | v0.5-chunking 三案对比 | 持平 | — | — | 94~96%(doc 口径) | — | 切块非瓶颈,负结果 |
+
+### DeepSeek 答题 / Qwen 判题(v0.6~v0.7,判分模型固定)
+
+| 版本 | 正确性 | 误拒率 | 正确拒答率 | chunk recall@5 | 延迟代价 | 判决 |
+|---|---|---|---|---|---|---|
+| v0.6 换生成模型(三轮均值) | 4.350 | 7.9% | 96.7% | 83.1% | — | 基线 |
+| **v0.7-retry20 误拒兜底(三轮均值)** | **4.610** | **1.25%** | **95.0%** | **83.1%** | +0.18s/题 | **✅ 定版** |
+
+> 两代使用的生成/判分模型不同,数字不可跨表直接比较。v0.6 的 RAG 增益(相对无检索)
+> 已从 +0.55 收缩到 +0.09,换模型主要抬高的是"无检索基线";详表见
+> [`eval/results-deepseek.md`](eval/results-deepseek.md)。
 
 关键读数:
 
@@ -91,6 +106,11 @@ Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,�
   事实题 RAG 增益 +0.87
 - **拒答机制**:分数阈值闸门原理性失效(无法答题 top-1 匹配分中位 0.94,与可答题分布
   重叠),LLM 内容级拒答支配全阈值曲线,维持自主拒答(`eval/calibration.md`)
+- **v0.7 误拒兜底**:首轮判拒后用 `retry_k=20` 再次检索、扩大上下文重答一次,
+  误拒率 7.9% → **1.25%**(三轮都只有 2/160,题集完全相同);代价是正确拒答率
+  96.7% → 95.0%、平均 +0.18s/题(仅拒答路径多一次生成,检索深度本就是 20 条)
+- **剩下的最后一公里**:2 道误拒题 gold 在 20 名外(查询改写/rerank 才能救);
+  `fact-082`/`reas-027` 是"答得出但判分低",属于生成质量而非拒答问题
 
 评估可信度:judge 与独立第三方模型盲评对比,±1 分一致率 100%(24/24),Pearson 0.886,
 误拒样本被双方独立同判;完整数据见 [`eval/results.md`](eval/results.md),
@@ -151,3 +171,7 @@ npx @modelcontextprotocol/inspector --cli --config scripts/mcp-inspector.json --
 
 `RETRIEVER=vector|hybrid|rerank|rewrite|parentchild`(默认 hybrid);
 rerank 需 bge-reranker-v2-m3(CPU 每题 +6.3s,建议 GPU 环境)。
+
+`RETRY_K=20`(默认;0=关闭):首轮判拒后用更大的 k 二次检索、扩大上下文重答一次。
+只走拒答路径(约 8% 流量),流式事件序 `retry → sources → delta*`;误拒修复数字见
+[`eval/results-deepseek.md`](eval/results-deepseek.md)。

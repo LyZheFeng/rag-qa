@@ -4,6 +4,7 @@
 - /health 便宜（不碰 LLM），存活探针用
 - /ready 会 ping LLM（3s 超时），向量与 LLM 都就绪才 200，编排就绪探针用
 - /ask/stream 事件序：sources（检索完成）→ delta*（临时增量）→ [retry → delta*]* → done（权威终态）
+  拒答兜底（v0.7）会再发 retry → sources（命中集扩大为 retry_k 条）→ delta*，done 仍只发一次
   错误一律收拢为 error 事件（含 trace_id），流以 done/error 收尾
 """
 

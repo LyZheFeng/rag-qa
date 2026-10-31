@@ -41,6 +41,7 @@ class AskResponse(BaseModel):
     question: str
     answer: str
     refused: bool
+    retried: bool = False  # 是否触发了拒答后的二次检索
     parse_mode: Literal["json", "retry", "fallback"]
     cited: list[Hit]
     retrieved: list[Hit]

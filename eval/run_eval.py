@@ -51,6 +51,7 @@ def eval_one(service, gen, judge, q: dict) -> dict:
         "type": q["type"],
         "question": q["question"],
         "refused": resp.refused,
+        "retried": resp.retried,
         "answer": resp.answer,
         "retrieved_ids": [h.chunk_id for h in resp.retrieved],
         "retrieved_docs": [h.doc_name for h in resp.retrieved],
