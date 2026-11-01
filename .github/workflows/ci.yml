@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # 单平台起步(写法参考 chatbi;开发机 Windows,前端另有本地 npm run build 验证)
+    runs-on: ubuntu-latest  # 单平台起步(写法参考 chatbi;开发机 Windows)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,3 +20,22 @@ jobs:
           pip install -r requirements.lock
       - name: 测试(离线:LLM 全 Fake、不需要 .env 与内网;真实索引的 2 例 MCP 协议测试自动跳过)
         run: python -X utf8 -m pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: 安装依赖(按 package-lock 锁定)
+        run: npm ci
+      - name: 构建(含 TypeScript 检查)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"

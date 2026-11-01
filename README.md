@@ -69,9 +69,9 @@ cd web && npm install && npm run dev        # 正式前端 :http://localhost:300
 
 说明:生成依赖 OpenAI 兼容 API(DeepSeek/自建 vLLM 均可,地址见 `.env` 的 `LLM_BASE_URL`);检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
-细节在服务端日志)。单测:`pytest`(94 个 = 离线 92 + 依赖真实索引的 MCP 协议 2,后者在无索引
-环境自动跳过;CI 在 ubuntu 上跑同一套。系统临时目录的 `pytest-of-*` 子树不可用的受限环境会
-自动回落到项目内目录)。
+细节在服务端日志)。单测:`pytest`(123 个;依赖真实索引的 2 个 MCP 协议测试在无索引环境自动跳过)。
+CI 在 ubuntu 上跑同一套,并额外跑一次前端 `npm ci && npm run build`(含 TypeScript 检查);
+受限环境系统临时目录的 `pytest-of-*` 子树不可用时,会自动回落到项目内目录。
 
 Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
 
@@ -169,7 +169,7 @@ app/        检索(hybrid/rerank/rewrite/parentchild 开关)· 生成 · 编排 
 pipeline/   语料加载 / 清洗 / 切块 / 嵌入 / 入库
 eval/       出题 · 预筛 · 跑批 · 指标 · 校准 + results.md / calibration.md
 data/       语料 / chunk / Chroma / 评估产物(模型缓存不入库)
-tests/      94 个单测(离线 92 + 真实索引 MCP 协议 2,CI 上自动跳过)
+tests/      123 个单测(2 个依赖真实索引的 MCP 协议测试在无索引时自动跳过)
 ```
 
 ## MCP 工具设计(项目 4 Day 24,官方 SDK `mcp` 2.x,stdio transport)
