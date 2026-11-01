@@ -1,6 +1,11 @@
 # PROGRESS · 当前进度
 
 > 每阶段收口更新本文件。新会话从这里接力。
+>
+> **状态说明(2026-11-01)**:本文件记录 2026-09-01~09-17 的 Phase 0~6 过程。
+> 此后误拒治理(v0.7~v0.10)见 [CHANGELOG.md](CHANGELOG.md)、[notes/engineering-story.md](notes/engineering-story.md)
+> 与 [eval/results-deepseek.md](eval/results-deepseek.md);当前版本 **v0.10-top8**(误拒 0.00%、正确拒答 100%)。
+> 文档地图见 [docs/README.md](docs/README.md)。
 
 ## 状态:优化计划阶段 0+1 完成(2026-09-17,`optimization-plan.md` 第一部分:快赢 + 评测守护)→ 下一步 Day 27-28 求职材料
 

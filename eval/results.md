@@ -3,6 +3,9 @@
 > 纪律:本文件数字全部为 200 题全量真实跑出(`eval/runs/` 留档原始记录);
 > `--limit 50` 快评数字只用于迭代决策,不入本表。评估配置:temperature=0,k=5,
 > judge=Qwen3.8-27B(正确性 1~5;拒答按 1 分计入)。
+>
+> **本表为 Qwen 时代(v0.1~v0.5)结果。** DeepSeek 时代(v0.6~v0.10,judge 固定 Qwen)见
+> [results-deepseek.md](results-deepseek.md);两代生成模型不同,数字不可跨表直接比。
 
 | 版本 | recall@5 chunk | recall@5 doc | MRR | 正确性(事实/推理) | 正确性·无检索对照 | 误拒率 | 正确拒答率 | faithfulness |
 |---|---|---|---|---|---|---|---|---|

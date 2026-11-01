@@ -1,6 +1,10 @@
 # 误拒 P1 夜间执行计划（A/B/C/D）
 
 > 创建于 2026-10-31 18:10。任何会话接手前，先读本文件 + `notes/false-refusal-plan.md` + `eval/results-deepseek.md`。
+>
+> **状态：已收口（2026-11-01）。** A/B/C/D/E 全部完成：A 安全作答率已采纳、B 推理 prompt 已采纳、
+> C 定向改写已采纳、D 为负结果、E（k=8）为当前定版。结论见
+> [`notes/engineering-story.md`](engineering-story.md) 与 [`CHANGELOG.md`](../CHANGELOG.md)。
 
 ## 已完成基线（P0，勿重做）
 
