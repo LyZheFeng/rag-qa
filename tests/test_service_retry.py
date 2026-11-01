@@ -421,3 +421,16 @@ def test_explicit_k_overrides_default():
 
     assert retriever.calls == [5]
     assert len(resp.retrieved) == 5
+
+
+def test_api_ask_uses_default_k_when_k_omitted():
+    from app.api import app
+    from fastapi.testclient import TestClient
+
+    gen = ScriptedGenerator([ANSWER_2])
+    app.state.service = RagService(TopKRetriever(hits(20)), gen, retry_k=20, default_k=8)
+
+    body = TestClient(app).post("/ask", json={"question": "如何声明请求体"}).json()
+
+    assert len(body["retrieved"]) == 8
+    assert gen.calls == [8]

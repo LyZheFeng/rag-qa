@@ -129,8 +129,15 @@ Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,�
   代价是个别题被多出的上下文干扰(`reas-023` 4.3→3.0 等),但净收益为正
 
 评估可信度:judge 与独立第三方模型盲评对比,±1 分一致率 100%(24/24),Pearson 0.886,
-误拒样本被双方独立同判;完整数据见 [`eval/results.md`](eval/results.md),
-原始记录留档 `eval/runs/`。
+误拒样本被双方独立同判;v0.10 又用 glm-5.3 复判 144 条,完全一致 94.4%、±1 一致 100%、
+无一条差 ≥2 分。完整数据见 [`eval/results.md`](eval/results.md),原始记录留档 `eval/runs/`。
+
+**性能(流式,50 题采样,默认配置)**:首字延迟(TTFT)p50 **677ms** / p90 967ms;
+端到端 p50 1478ms / 均值 1982ms——长尾来自拒答题(二次检索 + 改写 + 三次生成,单题 4~5s)。
+复现:`.venv\Scripts\python.exe -X utf8 -m eval.bench_latency --n 50`。
+
+**工程复盘**:从 7.9% 到 0 的完整过程、两个负结果与面试问答整理在
+[`notes/engineering-story.md`](notes/engineering-story.md)。
 
 ## 踩坑 Top 3
 
