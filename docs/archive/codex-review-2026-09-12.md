@@ -1,8 +1,8 @@
 # 外部评审(Codex,2026-09-12)→ 优化待办
 
 > **状态：已关闭（历史存档）。** 这是 2026-09-12 的评审记录；同日的部署/frp 目标已取消，
-> 后续 P0（二次检索）与 P1（A~E）均已完成。现行版本与结论见 [`CHANGELOG.md`](../CHANGELOG.md) 与
-> [`notes/engineering-story.md`](engineering-story.md)。
+> 后续 P0（二次检索）与 P1（A~E）均已完成。现行版本与结论见 [`CHANGELOG.md`](../../CHANGELOG.md) 与
+> [`notes/engineering-story.md`](../../notes/engineering-story.md)。
 
 > 新会话从这里接力。评审原文要点 + 本机核实结果 + 执行优先级。
 > 背景:六 Phase 已收官(v0.2-hybrid 定版,正确性 4.41/误拒 7.5%/正确拒答 100%/faithfulness 96%,

@@ -1,13 +1,13 @@
 # rag-qa 工作流程（跨会话执行依据）
 
-> 新会话开工：先读 [`docs/README.md`](docs/README.md)（文档地图）与 [`CHANGELOG.md`](CHANGELOG.md)（现行版本）；
-> 本文件仅作 2026-09 的流程存档，`PROGRESS.md` 为当时的阶段记录。
+> 新会话开工：先读 [`docs/README.md`](../README.md)（文档地图）与 [`CHANGELOG.md`](../../CHANGELOG.md)（现行版本）；
+> 本文件仅作 2026-09 的流程存档，`docs/archive/progress-2026-09.md` 为当时的阶段记录。
 >
 > **状态（2026-09-12）**：Phase 0~5 已全部收官；Phase 6 按"本地运行"定位收口（部署/frp/公网验收取消）。
 > 本文件自此转为**历史存档**；现行版本、指标与决策以 `CHANGELOG.md`、`eval/results-deepseek.md` 与 `docs/README.md` 为准。
 >
 > **补记（2026-09-17）**：界面层已从 Streamlit 换成 Next.js 前端（`web/`，SSE 流式 + 引用溯源），
-> 下文各 Phase 中的 Streamlit 表述均为当时历史；详见 `PROGRESS.md` 阶段四/五节。
+> 下文各 Phase 中的 Streamlit 表述均为当时历史；详见 `docs/archive/progress-2026-09.md` 阶段四/五节。
 
 ## 全局约定
 

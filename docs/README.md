@@ -15,8 +15,8 @@
 | 你是 | 建议顺序 | 时间 |
 |---|---|---|
 | **面试官 / 评审** | 本页 → [`notes/engineering-story.md`](../notes/engineering-story.md) → [`eval/results-deepseek.md`](../eval/results-deepseek.md) 的 v0.10 与留出集章节 | 25~35 分钟 |
-| **开发者（跑起来）** | [`README.md`](../README.md) 快速开始 → [`web/README.md`](../web/README.md) → [`WORKFLOW.md`](../WORKFLOW.md)（历史约定，可跳过） | 15 分钟 |
-| **接手维护** | 本页 → [`CHANGELOG.md`](../CHANGELOG.md) → [`PROGRESS.md`](../PROGRESS.md)（2026-09 阶段记录）→ [`notes/`](../notes/) | 20 分钟 |
+| **开发者（跑起来）** | [`README.md`](../README.md) 快速开始 → [`web/README.md`](../web/README.md) → [`archive/workflow-2026-09.md`](archive/workflow-2026-09.md)（历史约定，可跳过） | 15 分钟 |
+| **接手维护** | 本页 → [`CHANGELOG.md`](../CHANGELOG.md) → [`archive/progress-2026-09.md`](archive/progress-2026-09.md)（2026-09 阶段存档）→ [`notes/`](../notes/) | 20 分钟 |
 | **只想看结论** | [`README.md`](../README.md) 顶部数字 + 版本表 → 本文末尾「权威数据源」 | 5 分钟 |
 
 ## 文档清单
@@ -33,8 +33,6 @@
 | [`docs/chunking-analysis.md`](chunking-analysis.md) | 语料/切块/耗时分析（122 篇、1,701 chunk、单题耗时构成） | 现行（可能有小偏差） |
 | [`eval/calibration.md`](../eval/calibration.md) | 拒答阈值校准曲线（结论：阈值闸门失效） | 历史结论，仍有效 |
 | [`web/README.md`](../web/README.md) | Next.js 前端：SSE 流式、引用交互、本地开发 | 现行 |
-| [`WORKFLOW.md`](../WORKFLOW.md) | 2026-09 的跨会话工作约定与 Phase 0~6 记录 | **历史存档** |
-| [`PROGRESS.md`](../PROGRESS.md) | 2026-09-01~09-17 的阶段进度（Phase 0~6） | **历史存档** |
 | [`notes/pitfalls.md`](../notes/pitfalls.md) | 踩坑笔记（问题 → 尝试 → 结论） | 长期维护 |
 
 ### 过程记录（已收口，供追溯）
@@ -43,7 +41,14 @@
 |---|---|---|
 | [`notes/false-refusal-plan.md`](../notes/false-refusal-plan.md) | 误拒 P0/P1 的计划与执行结果（A/B/C/D/E） | 已收口 |
 | [`notes/overnight-plan.md`](../notes/overnight-plan.md) | 2026-10-31 夜间 A/B/C/D 的执行协议与结果 | 已收口 |
-| [`notes/codex-review-2026-09-12.md`](../notes/codex-review-2026-09-12.md) | 外部评审待办与处理 | 已关闭 |
+
+### 历史存档（docs/archive/）
+
+| 文件 | 内容 | 状态 |
+|---|---|---|
+| [`archive/progress-2026-09.md`](archive/progress-2026-09.md) | 2026-09-01~09-17 的 Phase 0~6 阶段进度 | 历史存档 |
+| [`archive/workflow-2026-09.md`](archive/workflow-2026-09.md) | 2026-09 的跨会话工作约定与 Phase 定义 | 历史存档 |
+| [`archive/codex-review-2026-09-12.md`](archive/codex-review-2026-09-12.md) | 外部评审（Codex）待办与本机核实 | 已关闭 |
 
 ## 权威数据源
 

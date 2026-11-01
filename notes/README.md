@@ -12,7 +12,9 @@
 | [`pitfalls.md`](pitfalls.md) | 踩坑笔记（问题 → 尝试 → 结论），长期追加 | 长期维护 |
 | [`false-refusal-plan.md`](false-refusal-plan.md) | 误拒 P0/P1 的计划与 A/B/C/D/E 执行结果 | 已收口（2026-11-01） |
 | [`overnight-plan.md`](overnight-plan.md) | 2026-10-31 夜间 A/B/C/D 的执行协议、断点续跑与结果 | 已收口（2026-11-01） |
-| [`codex-review-2026-09-12.md`](codex-review-2026-09-12.md) | 外部评审（Codex）待办与本机核实；其中部署相关目标已取消 | 已关闭 |
+
+> 2026-09 的 `PROGRESS.md`、`WORKFLOW.md` 与外部评审 `codex-review-2026-09-12.md` 已归档到
+> [`docs/archive/`](../docs/archive/)，不再放在 notes/。
 
 ## 约定
 
