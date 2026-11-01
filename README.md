@@ -136,6 +136,10 @@ Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,�
 端到端 p50 1478ms / 均值 1982ms——长尾来自拒答题(二次检索 + 改写 + 三次生成,单题 4~5s)。
 复现:`.venv\Scripts\python.exe -X utf8 -m eval.bench_latency --n 50`。
 
+**泛化检验**:另出的 60 道留出题(200 题未覆盖的段落,独立模型审核,未参与调参)三轮
+正确性 **4.9444 ± 0.0098**、误拒 0、正确拒答 100%、安全率 100%;题目偏直接抽取,不能替代更难的基准,
+明细见 [`eval/results-deepseek.md`](eval/results-deepseek.md)。
+
 **工程复盘**:从 7.9% 到 0 的完整过程、两个负结果与面试问答整理在
 [`notes/engineering-story.md`](notes/engineering-story.md)。
 

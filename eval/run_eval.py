@@ -105,9 +105,10 @@ def main() -> None:
     parser.add_argument("--version", required=True, help="如 v0.1-baseline")
     parser.add_argument("--limit", type=int, default=0, help="子集快评题数(0=全量)")
     parser.add_argument("--resume", default="", help="断点续跑的 run 目录")
+    parser.add_argument("--questions", default="questions.jsonl", help="题库文件名（默认 questions.jsonl）")
     args = parser.parse_args()
 
-    questions = load_jsonl(DATA_EVAL / "questions.jsonl")
+    questions = load_jsonl(DATA_EVAL / args.questions)
     if args.limit:
         questions = stratified_limit(questions, args.limit)
         print(f"快评子集 {len(questions)} 题")
