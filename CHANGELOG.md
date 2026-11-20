@@ -18,7 +18,10 @@
   安装来源」:旧链路先把未锁版本的传递依赖装进环境,造成
   `opentelemetry-exporter-otlp-common 0.66b2` 与 lock 里 sdk 1.44.0 冲突(CI 日志一直有这条
   ERROR 但没人看);现在加 `pip check` 兜住。
-- 回归:本地 `pytest` 123 全绿、`ruff check .` 全过、冒烟通过。
+- 回归:本地 `pytest` 123 全绿、`ruff check .` 全过、冒烟通过;
+  CI run #20(commit `30590b0`)`test (ubuntu-24.04)` 174s、`web (node 22)` 35s 双绿:
+  `No broken requirements found` / `All checks passed` / `121 passed, 2 skipped` /
+  uvicorn 冒烟路由齐全 / `Compiled successfully`。
 
 ## 当前版本
 
