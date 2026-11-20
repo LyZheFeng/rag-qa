@@ -4,8 +4,6 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pipeline.chunker import HeadingAwareChunker
@@ -207,7 +205,7 @@ def test_fixed_chunker_cover_and_overlap():
     chunks = FixedChunker(512, 50).chunk(doc)
     assert chunks[0].char_start == 0
     assert chunks[-1].char_end == len(doc.full_text)  # 全覆盖
-    for a, b in zip(chunks, chunks[1:]):
+    for a, b in zip(chunks, chunks[1:], strict=False):
         assert b.char_start < a.char_end  # 相邻窗口有重叠
     ids = [c.chunk_id for c in chunks]
     assert ids == [f"t.x#{i:04d}" for i in range(len(chunks))]

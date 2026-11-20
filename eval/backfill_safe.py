@@ -12,7 +12,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .common import REPO_ROOT, RUNS_DIR, get_judge, judge_unanswerable, load_jsonl, utf8_stdout
+from .common import (
+    REPO_ROOT,
+    RUNS_DIR,
+    get_judge,
+    judge_unanswerable,
+    load_jsonl,
+    utf8_stdout,
+)
 
 CHUNKS_PATH = REPO_ROOT / "data" / "chunks" / "chunks.jsonl"
 

@@ -127,7 +127,9 @@ def clean_markdown(raw: str, md_path: Path, docs_src_root: Path) -> str:
                 continue
 
         # 占位符与包含语法（围栏内外都可能出现）
-        def _sub_placeholder(m: re.Match) -> str:
+        def _sub_placeholder(m: re.Match, _in_fence: bool = in_fence) -> str:
+            """_in_fence 用默认参数绑定当前值:闭包直接读循环变量在 ruff B023 下是隐患,
+            虽然这里只在本轮内立即调用,绑定后不依赖"晚绑定恰好没错"这个巧合。"""
             resolved, rel = _resolve_docs_src(m.group(1), docs_src_root)
             if resolved is None:
                 stats["unresolved"] += 1
@@ -145,7 +147,7 @@ def clean_markdown(raw: str, md_path: Path, docs_src_root: Path) -> str:
                     elif part:
                         picked.append(lines[int(part) - 1])
                 content = "\n".join(picked) + "\n"
-            if in_fence:
+            if _in_fence:
                 return content.rstrip("\n")
             lang = EXT_LANG.get(Path(rel).suffix.lstrip(".").lower())
             return _fence(lang, content)
@@ -191,11 +193,11 @@ def clean_markdown(raw: str, md_path: Path, docs_src_root: Path) -> str:
 
         out.append(line)
 
-    def _truncate(l: str) -> str:
+    def _truncate(line: str) -> str:
         # 超长单行（base64 图片字面量等，含占位符替换注入的内容）统一截断
-        return l if len(l) <= 1000 else l[:400] + f"…（超长行已截断，原 {len(l)} 字符）"
+        return line if len(line) <= 1000 else line[:400] + f"…（超长行已截断，原 {len(line)} 字符）"
 
-    cleaned = "\n".join(_truncate(l) for l in out)
+    cleaned = "\n".join(_truncate(line) for line in out)
     # 压掉 3 连以上空行为 1 空行
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip() + "\n"
     LAST_STATS.clear()

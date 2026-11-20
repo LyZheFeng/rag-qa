@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.api import MAX_CONCURRENT_ASKS, _ask_semaphore, app
-from app.generator import GenerationOutcome, LLMGenerator, scan_answer
-from app.schemas import AnswerSpec, Hit
-from app.service import RagService
 from fastapi.testclient import TestClient
+
+from app.api import MAX_CONCURRENT_ASKS, _ask_semaphore, app
+from app.generator import LLMGenerator, scan_answer
+from app.schemas import Hit
+from app.service import RagService
 
 
 def hit(i: int, text: str = "内容") -> Hit:

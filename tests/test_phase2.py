@@ -8,12 +8,13 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fastapi.testclient import TestClient
+
 from app import __version__
 from app.api import app
 from app.generator import LLMGenerator, build_context, extract_json, validate_citations
 from app.schemas import AnswerSpec, AskResponse, Hit
 from app.service import RagService
-from fastapi.testclient import TestClient
 
 
 def hit(i: int, text: str = "内容") -> Hit:

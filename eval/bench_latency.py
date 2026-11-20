@@ -13,9 +13,9 @@ from __future__ import annotations
 import argparse
 import statistics as st
 import time
-from pathlib import Path
 
 from app.service import get_service
+
 from .common import REPO_ROOT, load_jsonl, utf8_stdout
 
 

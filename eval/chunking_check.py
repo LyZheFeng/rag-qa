@@ -13,7 +13,6 @@ import sys
 import time
 
 from .common import DATA_EVAL, RUNS_DIR, ensure_dirs, load_jsonl, utf8_stdout
-from .metrics import mean
 
 
 def doc_rr(docs: list[str], gold_doc: str | None) -> float:

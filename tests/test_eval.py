@@ -1,6 +1,12 @@
 """Phase 3 评估模块单测(纯函数,无网络)。"""
 
-from eval.metrics import faithfulness_score, mean, recall_chunk, recall_doc, reciprocal_rank, summarize
+from eval.metrics import (
+    faithfulness_score,
+    recall_chunk,
+    recall_doc,
+    reciprocal_rank,
+    summarize,
+)
 from eval.sampling import eligible_chunks, stratified_sample
 from eval.screen import select_final, validate_record
 

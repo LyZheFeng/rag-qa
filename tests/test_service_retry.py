@@ -237,8 +237,9 @@ def parse_sse(text: str) -> list[tuple[str, dict]]:
 
 
 def test_api_stream_retry_frames():
-    from app.api import app
     from fastapi.testclient import TestClient
+
+    from app.api import app
 
     gen = ScriptedStreamGenerator([REFUSE_1, ANSWER_2])
     app.state.service = RagService(TopKRetriever(hits(20)), gen, retry_k=20)
@@ -257,8 +258,9 @@ def test_api_stream_retry_frames():
 
 
 def test_api_ask_exposes_retried_flag():
-    from app.api import app
     from fastapi.testclient import TestClient
+
+    from app.api import app
 
     gen = ScriptedGenerator([REFUSE_1, ANSWER_2])
     app.state.service = RagService(TopKRetriever(hits(20)), gen, retry_k=20)
@@ -424,8 +426,9 @@ def test_explicit_k_overrides_default():
 
 
 def test_api_ask_uses_default_k_when_k_omitted():
-    from app.api import app
     from fastapi.testclient import TestClient
+
+    from app.api import app
 
     gen = ScriptedGenerator([ANSWER_2])
     app.state.service = RagService(TopKRetriever(hits(20)), gen, retry_k=20, default_k=8)

@@ -12,7 +12,15 @@ from __future__ import annotations
 import sys
 from collections import Counter
 
-from .common import DATA_EVAL, REPO_ROOT, ensure_dirs, get_llm, load_jsonl, utf8_stdout, write_jsonl
+from .common import (
+    DATA_EVAL,
+    REPO_ROOT,
+    ensure_dirs,
+    get_llm,
+    load_jsonl,
+    utf8_stdout,
+    write_jsonl,
+)
 from .judge import gold_supported, unanswerable_check
 
 FINAL_TARGETS = {"fact": 100, "reasoning": 60, "unanswerable": 40}

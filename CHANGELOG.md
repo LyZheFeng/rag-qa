@@ -4,6 +4,22 @@
 > v0.6+ 为 DeepSeek 生成 + 固定 Qwen judge，两代不可直接比）。详细记录见
 > [`eval/results.md`](eval/results.md)（Qwen 时代）与 [`eval/results-deepseek.md`](eval/results-deepseek.md)（DeepSeek 时代）。
 
+## 2026-11-20 · CI 加固(不改版本与指标)
+
+- 与 chatbi 同口径:ubuntu 钉 24.04、最小权限、并发取消、25 分钟超时、pip 缓存、junit 报告留存;
+  actions 升 v7(checkout / setup-python / setup-node / upload-artifact),消掉 Node 20 弃用告警。
+- 新增 ruff 门禁(E4/E7/E9/F/I/B;`data/` 下是仓储的 FastAPI 文档语料,不参与 lint),
+  清掉存量 63 条(import 排序/未用导入、`zip(strict=)`、`pytest.raises(Exception)` 收窄、
+  cleaner 闭包绑循环变量等)。
+- 新增 `scripts/smoke_http.py`:真起 uvicorn 进程请求 `/openapi.json` 并断言路由齐全。
+  刻意 `--lifespan off`:完整启动要加载 bge-m3 与校验索引 manifest,CI 无索引/模型;
+  这一层补的是"装得上、起得来",TestClient 的进程内 ASGI 调用证明不了。
+- 依赖安装改为「torch CPU 轮子 → `requirements.txt` 只做 `--dry-run` 自足校验 → lock 是唯一
+  安装来源」:旧链路先把未锁版本的传递依赖装进环境,造成
+  `opentelemetry-exporter-otlp-common 0.66b2` 与 lock 里 sdk 1.44.0 冲突(CI 日志一直有这条
+  ERROR 但没人看);现在加 `pip check` 兜住。
+- 回归:本地 `pytest` 123 全绿、`ruff check .` 全过、冒烟通过。
+
 ## 当前版本
 
 **v0.10-top8**（2026-11-01，tag `v0.10-top8`）：正确性 **4.8146 ± 0.0241**、误拒 **0.00%**、

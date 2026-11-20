@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import statistics as st
 import sys
-from pathlib import Path
 
 from .aggregate import find_rounds
 from .common import load_jsonl, utf8_stdout

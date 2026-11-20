@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from pipeline.config import REPO_ROOT, get_settings
+from pipeline.config import get_settings
 from pipeline.loader import load_doc
 
 
@@ -33,7 +33,7 @@ def percentile(sorted_vals: list[int], q: float) -> int:
 
 def histogram(vals: list[int], edges: list[int]) -> list[str]:
     rows = []
-    for lo, hi in zip(edges, edges[1:] + [float("inf")]):
+    for lo, hi in zip(edges, edges[1:] + [float("inf")], strict=True):
         n = sum(1 for v in vals if lo <= v < hi)
         bar = "█" * max(1, round(n / max(1, len(vals)) * 60))
         rows.append(f"| {lo}-{hi if hi != float('inf') else '+'} | {n} | {bar} |")
@@ -83,7 +83,7 @@ def main() -> None:
         "",
     ]
 
-    over = [r for r, t in zip(records, n_tokens) if t > 512]
+    over = [r for r, t in zip(records, n_tokens, strict=True) if t > 512]
     stats_md += [
         f"超过 512 token 的 chunk：{len(over)}（bge-m3 上限 8192，无截断风险）",
         "",

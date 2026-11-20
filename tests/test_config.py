@@ -12,35 +12,36 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
+from pydantic import ValidationError
+
 from pipeline.config import API_MAX_K, Settings
 from pipeline.manifest import check_manifest, write_manifest
-
 
 # ---------- Settings 约束 ----------
 
 
 def test_invalid_retriever_rejected():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(retriever="bogus")
 
 
 def test_hybrid_candidates_below_api_max_k_rejected():
     # 候选深度小于 API k 上限会融合出不足 k 条,启动即拦
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(hybrid_candidates=API_MAX_K - 1)
     Settings(hybrid_candidates=API_MAX_K, retry_k=API_MAX_K)  # 边界值放行
 
 
 def test_retry_k_deeper_than_candidates_rejected():
     # 二次检索比融合候选池还深 = 静默降级,启动即拦
-    with pytest.raises(Exception, match="RETRY_K"):
+    with pytest.raises(ValidationError, match="RETRY_K"):
         Settings(retry_k=30)  # 默认候选 20
     Settings(retriever="vector", retry_k=30)  # 纯向量直接查库,不看融合候选池
     Settings(retry_k=0)  # 关闭兜底永远合法
 
 
 def test_rrf_k_must_be_positive():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(rrf_k=0)
     Settings(rrf_k=1)
 
@@ -49,7 +50,7 @@ def test_retry_k_default_and_bounds():
     # 默认 20（与 P0 方案一致）；0 表示关闭；负数启动即拦
     assert Settings(_env_file=None).retry_k == 20
     assert Settings(retry_k=0).retry_k == 0
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(retry_k=-1)
 
 
@@ -57,14 +58,14 @@ def test_top_k_default_and_bounds():
     # 默认 8：gold 排名 6~8 的 12 道可答题是首批受益者
     assert Settings(_env_file=None).top_k == 8
     assert Settings(top_k=1).top_k == 1
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(top_k=0)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Settings(top_k=21)
 
 
 def test_top_k_must_be_below_retry_k():
-    with pytest.raises(Exception, match="TOP_K"):
+    with pytest.raises(ValidationError, match="TOP_K"):
         Settings(top_k=20)  # 默认 retry_k=20，等于 top_k 时二次检索拿不到新命中
     Settings(top_k=20, retry_k=0)  # 关掉二次检索则合法
     Settings(top_k=8, retry_k=20)

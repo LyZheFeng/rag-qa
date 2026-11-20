@@ -4,38 +4,89 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# 最小权限:测试只需要读代码(默认 token 权限随仓库设置漂移,显式钉住)
+permissions:
+  contents: read
+
+# 同一分支的新提交取消上一次运行,省 runner、避免旧 commit 的红/绿干扰判断
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # 单平台起步(写法参考 chatbi;开发机 Windows)
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # 单平台起步:开发机是 Windows,但 torch/chromadb 体积大,Windows runner 首次安装
+        # 要多 2–3 分钟;先保证 Linux(部署目标)干净,Windows 矩阵等有需要再开。
+        # 钉 24.04:ubuntu-latest 自 2026-10 起迁 26.04,不锁会被静默换底座。
+        os: [ubuntu-24.04]
+        python-version: ["3.13"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
-      - name: 安装依赖(先验证 requirements.txt 自足,再用 lock 锁版本防漂移;torch 预装 CPU 版,Linux 下避开 CUDA 传递依赖全家桶)
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements.lock
+      - name: 安装依赖(torch 先装 CPU 版避开 CUDA 全家桶;lock 是唯一安装来源)
         run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-          pip install -r requirements.lock
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # 自足性校验:requirements.txt 能独立解析(不把未锁版本的传递依赖装进环境,
+          # 否则会污染随后按 lock 安装的环境——2026-11 的 opentelemetry 版本冲突即由此而来)
+          python -m pip install --dry-run -r requirements.txt
+          python -m pip install -r requirements.lock
+      - name: 依赖一致性(pip check:声明冲突/缺依赖在新环境立刻暴露)
+        run: python -m pip check
+      - name: 静态检查(ruff:未定义名/未用导入/导入顺序/bugbear)
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m ruff check .
       - name: 测试(离线:LLM 全 Fake、不需要 .env 与内网;真实索引的 2 例 MCP 协议测试自动跳过)
-        run: python -X utf8 -m pytest -q
+        run: python -X utf8 -m pytest -q --junitxml=pytest-report.xml
+      - name: 冒烟(真起 uvicorn 进程 + 请求 /openapi.json,验证部署形态可启动)
+        run: python -X utf8 scripts/smoke_http.py
+      - name: 上传测试报告(失败也留证据)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-report-${{ matrix.os }}
+          path: pytest-report.xml
+          if-no-files-found: ignore
+          retention-days: 14
 
   web:
-    runs-on: ubuntu-latest
+    # 前端产物是静态文件,单平台足够;后端平台差异在 test job 里管
+    name: web (node ${{ matrix.node-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # 沿用已在 CI 验证过的 22(chatbi 用 24);升版本当独立改动,不混进这次加固
+        node-version: ["22"]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node-version }}
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: 安装依赖(按 package-lock 锁定)
+      - name: 安装依赖(npm ci:严格按 package-lock 装,锁文件不一致直接失败)
         run: npm ci
-      - name: 构建(含 TypeScript 检查)
+      - name: 构建(next build 含 TypeScript 类型检查)
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"

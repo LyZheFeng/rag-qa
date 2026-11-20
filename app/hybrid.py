@@ -43,7 +43,7 @@ def rrf_fuse(*rank_lists: list[str], k: int = 60, weights: list[float] | None = 
     """
     ws = weights if weights else [1.0] * len(rank_lists)
     scores: dict[str, float] = {}
-    for w, ranks in zip(ws, rank_lists):
+    for w, ranks in zip(ws, rank_lists, strict=True):
         for i, cid in enumerate(ranks, 1):
             scores[cid] = scores.get(cid, 0.0) + w / (k + i)
     return sorted(scores.items(), key=lambda x: -x[1])

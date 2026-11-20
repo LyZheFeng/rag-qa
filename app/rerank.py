@@ -35,7 +35,7 @@ class RerankRetriever:
         if len(pool) <= k:
             return pool
         scores = self.reranker.predict([(query, h.text) for h in pool])
-        ranked = sorted(zip(pool, scores), key=lambda x: -float(x[1]))[:k]
+        ranked = sorted(zip(pool, scores, strict=True), key=lambda x: -float(x[1]))[:k]
         hits: list[Hit] = []
         for rank, (h, s) in enumerate(ranked, 1):
             # CrossEncoder 输出原始 logit(可正可负),过 sigmoid 转成 0~1 匹配度供展示

@@ -71,8 +71,8 @@ def main() -> None:
         print(f"小样本实测:前 {len(questions)} 题")
     print(f"可答题 {len(questions)} 道(事实+推理),跑 {args.retrievers}")
 
-    from pipeline.config import get_settings
     from app.retriever import VectorRetriever
+    from pipeline.config import get_settings
 
     s = get_settings()
     vector = VectorRetriever.from_settings()

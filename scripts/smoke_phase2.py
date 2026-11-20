@@ -44,10 +44,10 @@ def main() -> None:
 
     n = len(latencies)
     print(
-        f"\n汇总：{n} 问 | 检索均值 {sum(l.retrieve_ms for l in latencies)/n:.0f}ms | "
-        f"生成均值 {sum(l.generate_ms for l in latencies)/n:.0f}ms | "
-        f"端到端均值 {sum(l.total_ms for l in latencies)/n:.0f}ms | "
-        f"最大 {max(l.total_ms for l in latencies)}ms"
+        f"\n汇总：{n} 问 | 检索均值 {sum(lat.retrieve_ms for lat in latencies)/n:.0f}ms | "
+        f"生成均值 {sum(lat.generate_ms for lat in latencies)/n:.0f}ms | "
+        f"端到端均值 {sum(lat.total_ms for lat in latencies)/n:.0f}ms | "
+        f"最大 {max(lat.total_ms for lat in latencies)}ms"
     )
 
 

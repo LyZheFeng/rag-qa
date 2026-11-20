@@ -70,8 +70,11 @@ cd web && npm install && npm run dev        # 正式前端 :http://localhost:300
 说明:生成依赖 OpenAI 兼容 API(DeepSeek/自建 vLLM 均可,地址见 `.env` 的 `LLM_BASE_URL`);检索/嵌入完全本地——LLM 不通时
 /health 仍正常、/ready 报 `llm_ready:false`、/ask 返回 502(客户端只见脱敏文案+追踪 id,
 细节在服务端日志)。单测:`pytest`(123 个;依赖真实索引的 2 个 MCP 协议测试在无索引环境自动跳过)。
-CI 在 ubuntu 上跑同一套,并额外跑一次前端 `npm ci && npm run build`(含 TypeScript 检查);
-受限环境系统临时目录的 `pytest-of-*` 子树不可用时,会自动回落到项目内目录。
+CI(ubuntu-24.04)跑同一套,另加:`ruff` 静态检查、`pip check` 依赖一致性、真起 uvicorn 进程请求
+`/openapi.json` 的冒烟(单测的 TestClient 只是进程内 ASGI,证明不了能起进程),以及前端
+`npm ci && npm run build`(含 TypeScript 检查);受限环境系统临时目录的 `pytest-of-*` 子树不可用时,
+会自动回落到项目内目录。
+本地同口径:`pip install -r requirements-dev.txt && ruff check .`。
 
 Docker 齐备的部署文件(Dockerfile/docker-compose.yml)留档在库备用,本地运行用不上。
 

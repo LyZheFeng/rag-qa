@@ -115,8 +115,8 @@ def test_rrf_fuse_multi_list():
 
 
 def test_rewrite_retriever_fuses_variants():
-    from app.rewrite import RewriteRetriever
     from app.hybrid import BM25Index
+    from app.rewrite import RewriteRetriever
 
     chunks = [
         {"chunk_id": "doc.a#0000", "doc_name": "doc/a.md", "seq": 0,

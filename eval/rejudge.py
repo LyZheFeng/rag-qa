@@ -24,7 +24,7 @@ from .judge import correctness
 
 def pearson(xs: list[int], ys: list[int]) -> float:
     mx, my = st.mean(xs), st.mean(ys)
-    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
     den = (sum((x - mx) ** 2 for x in xs) * sum((y - my) ** 2 for y in ys)) ** 0.5
     return num / den if den else 0.0
 
@@ -77,7 +77,7 @@ def summarize(pairs: list[tuple[str, int, int]], errors: int, label: str) -> Non
         return
     old = [a for _, a, _ in pairs]
     new = [b for _, _, b in pairs]
-    diffs = [b - a for a, b in zip(old, new)]
+    diffs = [b - a for a, b in zip(old, new, strict=True)]
     exact = sum(d == 0 for d in diffs)
     within1 = sum(abs(d) <= 1 for d in diffs)
     print(f"{label}: 有效 {len(pairs)} 条（失败 {errors}）| 完全一致 {exact}/{len(pairs)} = {exact/len(pairs):.1%}"

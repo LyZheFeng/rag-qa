@@ -21,7 +21,7 @@ from pipeline.embed import BgeM3Embedder
 emb = BgeM3Embedder()
 vec = emb.encode_queries(["如何声明请求体"])[0]
 res = col.query(query_embeddings=[vec], n_results=2, include=["metadatas", "distances"])
-for i, (meta, dist) in enumerate(zip(res["metadatas"][0], res["distances"][0])):
+for i, (meta, dist) in enumerate(zip(res["metadatas"][0], res["distances"][0], strict=True)):
     print(f"  top{i+1} dist={dist:.3f} {meta['doc_name']} | {meta['section_path'][:40]}")
 print(f"[2] 检索链路 OK ({time.time()-t0:.1f}s，含模型加载)")
 

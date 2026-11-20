@@ -89,8 +89,8 @@ def main() -> int:
         print(f"[setup] gold doc 不在索引语料: {missing}(索引未建?先跑 scripts/build_index.py)", file=sys.stderr)
         return 2
 
-    from pipeline.config import get_settings
     from app.service import get_service
+    from pipeline.config import get_settings
 
     settings = get_settings()
     t0 = time.time()

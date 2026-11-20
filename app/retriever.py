@@ -70,7 +70,7 @@ class VectorRetriever:
         )
         hits: list[Hit] = []
         for i, (doc, meta, dist) in enumerate(
-            zip(res["documents"][0], res["metadatas"][0], res["distances"][0])
+            zip(res["documents"][0], res["metadatas"][0], res["distances"][0], strict=True)
         ):
             if "chunk_id" not in meta:
                 # 旧库未存 chunk_id，按 models.Doc.stem 约定重构 "{stem}#{seq:04d}"

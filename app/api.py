@@ -178,7 +178,7 @@ async def ask_stream(
         try:
             async for event, payload in iterate_in_threadpool(guarded()):
                 yield _sse_frame(event, payload)
-        except Exception as e:  # 与 /ask 同口径：细节进日志，前端只拿 trace_id
+        except Exception:  # 与 /ask 同口径：细节进日志，前端只拿 trace_id
             trace_id = uuid.uuid4().hex[:12]
             logger.exception("ask/stream 失败 trace_id=%s", trace_id)
             yield _sse_frame("error", {"message": "生成服务暂时不可用", "trace_id": trace_id})

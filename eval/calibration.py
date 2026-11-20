@@ -18,9 +18,9 @@ def main() -> None:
     ensure_dirs()
     questions = load_jsonl(DATA_EVAL / "questions.jsonl")
 
-    from pipeline.config import get_settings
     from app.hybrid import BM25Index, HybridRetriever
     from app.retriever import VectorRetriever
+    from pipeline.config import get_settings
 
     s = get_settings()
     hybrid = HybridRetriever(

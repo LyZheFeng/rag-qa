@@ -130,7 +130,7 @@ class HeadingAwareChunker(ChunkStrategy):
         cur: list[str] = []
         cur_start = offsets[0]
         first = True
-        for ln, off in zip(lines, offsets):
+        for ln, off in zip(lines, offsets, strict=True):
             if cur and len("\n".join(cur + [ln])) > self.size:
                 piece = "\n".join(cur)
                 units.append(Unit(piece, cur_start, cur_start + len(piece), not first))

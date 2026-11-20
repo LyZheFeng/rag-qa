@@ -13,8 +13,6 @@ unanswerable 题：对问题做 k=20 检索，把命中段落给审核模型，�
 from __future__ import annotations
 
 import argparse
-import json
-from pathlib import Path
 
 from .common import REPO_ROOT, chat_json, get_llm, load_jsonl, utf8_stdout
 

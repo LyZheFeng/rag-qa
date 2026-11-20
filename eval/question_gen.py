@@ -10,7 +10,16 @@ from __future__ import annotations
 
 import sys
 
-from .common import DATA_EVAL, REPO_ROOT, append_jsonl, chat_json, ensure_dirs, get_llm, load_jsonl, utf8_stdout
+from .common import (
+    DATA_EVAL,
+    REPO_ROOT,
+    append_jsonl,
+    chat_json,
+    ensure_dirs,
+    get_llm,
+    load_jsonl,
+    utf8_stdout,
+)
 from .sampling import eligible_chunks, stratified_sample
 
 SEED = 42

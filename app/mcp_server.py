@@ -55,6 +55,7 @@ def _search(query: str, top_k: int) -> str:
     改动时保持这一不变量。
     """
     from mcp.server.mcpserver.exceptions import ToolError
+
     from pipeline.manifest import IndexValidationError
 
     try:
